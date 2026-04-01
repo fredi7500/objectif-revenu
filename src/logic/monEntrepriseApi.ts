@@ -1,4 +1,4 @@
-const MON_ENTREPRISE_API_URL = '/api/mon-entreprise/evaluate';
+const MON_ENTREPRISE_API_URL = 'https://mon-entreprise.urssaf.fr/api/v1/evaluate';
 
 type Situation = Record<string, string | number | boolean | null>;
 
