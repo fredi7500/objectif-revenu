@@ -1,9 +1,5 @@
-export type AuthUser = {
-  id: string;
-  email: string;
-  passwordHash: string;
-  createdAt: string;
-};
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 export type AuthSession = {
   userId: string;
@@ -13,28 +9,11 @@ export type AuthSession = {
 
 type PersistedEntry = { id?: string };
 
-const USERS_KEY = 'objectif-revenu-auth-users-v1';
 const SESSION_KEY = 'objectif-revenu-auth-session-v1';
 const APP_STORAGE_PREFIX = 'objectif-revenu-app-v3';
 const AUTH_EVENT = 'objectif-revenu-auth-change';
 
 export const GUEST_USER_ID = 'guest';
-
-function readUsers(): AuthUser[] {
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveUsers(users: AuthUser[]) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -69,26 +48,40 @@ function dedupeEntries(entries: PersistedEntry[]) {
   });
 }
 
-async function hashPassword(password: string) {
-  const value = password.trim();
+function buildSession(session: Session | null): AuthSession | null {
+  const user = session?.user;
+  const email = normalizeEmail(user?.email ?? '');
 
-  if (!value) {
-    throw new Error('Le mot de passe est requis.');
+  if (!user?.id || !email) {
+    return null;
   }
 
-  const encoder = new TextEncoder();
-  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(value));
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function buildSession(user: AuthUser): AuthSession {
   return {
     userId: user.id,
-    email: user.email,
-    signedInAt: new Date().toISOString(),
+    email,
+    signedInAt: user.last_sign_in_at ?? new Date().toISOString(),
   };
+}
+
+function readPersistedSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed?.userId || !parsed?.email) {
+      return null;
+    }
+
+    return {
+      userId: String(parsed.userId),
+      email: normalizeEmail(String(parsed.email)),
+      signedInAt:
+        typeof parsed.signedInAt === 'string' ? parsed.signedInAt : new Date().toISOString(),
+    } satisfies AuthSession;
+  } catch {
+    return null;
+  }
 }
 
 function persistSession(session: AuthSession | null) {
@@ -101,35 +94,18 @@ function persistSession(session: AuthSession | null) {
   window.dispatchEvent(new CustomEvent<AuthSession | null>(AUTH_EVENT, { detail: session }));
 }
 
+async function syncSessionFromSupabase() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const nextSession = buildSession(session);
+  persistSession(nextSession);
+  return nextSession;
+}
+
 export function getStoredSession() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw);
-    if (!parsed?.userId || !parsed?.email) {
-      return null;
-    }
-
-    const users = readUsers();
-    const matchingUser = users.find(
-      (user) => user.id === parsed.userId && user.email === normalizeEmail(parsed.email)
-    );
-
-    if (!matchingUser) {
-      persistSession(null);
-      return null;
-    }
-
-    return {
-      userId: matchingUser.id,
-      email: matchingUser.email,
-      signedInAt:
-        typeof parsed.signedInAt === 'string' ? parsed.signedInAt : new Date().toISOString(),
-    } satisfies AuthSession;
-  } catch {
-    return null;
-  }
+  return readPersistedSession();
 }
 
 export function subscribeToAuthChanges(callback: (session: AuthSession | null) => void) {
@@ -145,67 +121,46 @@ export function subscribeToAuthChanges(callback: (session: AuthSession | null) =
   window.addEventListener(AUTH_EVENT, handleLocalAuthChange);
   window.addEventListener('storage', handleStorage);
 
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    persistSession(buildSession(session));
+  });
+
+  callback(getStoredSession());
+  void syncSessionFromSupabase().catch(() => {
+    persistSession(null);
+  });
+
   return () => {
+    subscription.unsubscribe();
     window.removeEventListener(AUTH_EVENT, handleLocalAuthChange);
     window.removeEventListener('storage', handleStorage);
   };
 }
 
-export async function signUp(email: string, password: string) {
+export async function sendMagicLink(email: string) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) {
     throw new Error('L’email est requis.');
   }
 
-  if (password.trim().length < 6) {
-    throw new Error('Le mot de passe doit contenir au moins 6 caractères.');
-  }
-
-  const users = readUsers();
-  if (users.some((user) => user.email === normalizedEmail)) {
-    throw new Error('Un compte existe déjà avec cet email.');
-  }
-
-  const user: AuthUser = {
-    id: typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random()}`,
+  const { error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,
-    passwordHash: await hashPassword(password),
-    createdAt: new Date().toISOString(),
-  };
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: window.location.origin,
+    },
+  });
 
-  saveUsers([user, ...users]);
-
-  const session = buildSession(user);
-  persistSession(session);
-  return session;
-}
-
-export async function signIn(email: string, password: string) {
-  const normalizedEmail = normalizeEmail(email);
-  if (!normalizedEmail) {
-    throw new Error('L’email est requis.');
+  if (error) {
+    throw new Error(error.message || 'Impossible d’envoyer le lien de connexion.');
   }
-
-  const users = readUsers();
-  const user = users.find((entry) => entry.email === normalizedEmail);
-  if (!user) {
-    throw new Error('Compte introuvable.');
-  }
-
-  const passwordHash = await hashPassword(password);
-  if (user.passwordHash !== passwordHash) {
-    throw new Error('Mot de passe incorrect.');
-  }
-
-  const session = buildSession(user);
-  persistSession(session);
-  return session;
 }
 
 export function signOut() {
   persistSession(null);
+  void supabase.auth.signOut();
 }
 
 export function getAppStorageKey(userId: string) {

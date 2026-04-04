@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 
 import AccountPromptDialog from '@/components/AccountPromptDialog';
-import { getAppStorageKey, type AuthSession } from '@/lib/auth';
+import { getAppStorageKey } from '@/lib/auth';
 
 type PaymentInputMode = 'HT' | 'TTC';
 
@@ -430,7 +430,6 @@ type ObjectifRevenuAppProps = {
   userId: string;
   userEmail: string;
   isAuthenticated: boolean;
-  onAuthenticated: (session: AuthSession) => void;
   onSignOut: () => void;
 };
 
@@ -438,7 +437,6 @@ export default function ObjectifRevenuApp({
   userId,
   userEmail,
   isAuthenticated,
-  onAuthenticated,
   onSignOut,
 }: ObjectifRevenuAppProps) {
   const storageKey = getAppStorageKey(userId);
@@ -472,6 +470,11 @@ export default function ObjectifRevenuApp({
 
     return () => window.clearTimeout(timeoutId);
   }, [paymentFeedback]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setShowAccountPrompt(false);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     try {
@@ -1685,7 +1688,6 @@ export default function ObjectifRevenuApp({
         open={showAccountPrompt}
         reason={accountPromptReason}
         onOpenChange={setShowAccountPrompt}
-        onAuthenticated={onAuthenticated}
       />
 
       <Dialog open={showCharge} onOpenChange={setShowCharge}>

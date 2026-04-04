@@ -3,6 +3,7 @@ import ObjectifRevenuApp from './components/ObjectifRevenuApp';
 import {
   GUEST_USER_ID,
   getStoredSession,
+  migrateGuestAppStateToUser,
   signOut,
   subscribeToAuthChanges,
   type AuthSession,
@@ -12,13 +13,16 @@ function App() {
   const [session, setSession] = useState<AuthSession | null>(() => getStoredSession());
 
   useEffect(() => subscribeToAuthChanges(setSession), []);
+  useEffect(() => {
+    if (!session?.userId) return;
+    migrateGuestAppStateToUser(session.userId);
+  }, [session?.userId]);
 
   return (
     <ObjectifRevenuApp
       userId={session?.userId ?? GUEST_USER_ID}
       userEmail={session?.email ?? 'Mode invité'}
       isAuthenticated={Boolean(session)}
-      onAuthenticated={setSession}
       onSignOut={() => {
         signOut();
         setSession(null);
