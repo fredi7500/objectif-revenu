@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ChangeEvent, ClipboardEvent } from 'react';
+import type { ChangeEvent, ClipboardEvent, FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,8 @@ import {
   Minus,
 } from 'lucide-react';
 
-import { getAppStorageKey } from '@/lib/auth';
+import AccountPromptDialog from '@/components/AccountPromptDialog';
+import { getAppStorageKey, type AuthSession } from '@/lib/auth';
 
 type PaymentInputMode = 'HT' | 'TTC';
 
@@ -428,12 +429,16 @@ function FeedbackIcon({ variant }: { variant: FeedbackVariant }) {
 type ObjectifRevenuAppProps = {
   userId: string;
   userEmail: string;
+  isAuthenticated: boolean;
+  onAuthenticated: (session: AuthSession) => void;
   onSignOut: () => void;
 };
 
 export default function ObjectifRevenuApp({
   userId,
   userEmail,
+  isAuthenticated,
+  onAuthenticated,
   onSignOut,
 }: ObjectifRevenuAppProps) {
   const storageKey = getAppStorageKey(userId);
@@ -442,6 +447,8 @@ export default function ObjectifRevenuApp({
   const [showSetup, setShowSetup] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCharge, setShowCharge] = useState(false);
+  const [showAccountPrompt, setShowAccountPrompt] = useState(false);
+  const [accountPromptReason, setAccountPromptReason] = useState<'payment-gate' | 'manual-signin'>('payment-gate');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
   const [paymentFeedback, setPaymentFeedback] = useState<FeedbackState | null>(null);
@@ -757,6 +764,11 @@ export default function ObjectifRevenuApp({
     setShowSetup(false);
   };
 
+  const handlePaymentSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    addPayment();
+  };
+
   const addPayment = () => {
     const amount = parseAmountInput(paymentAmount);
     if (!amount || amount <= 0) return;
@@ -791,10 +803,17 @@ export default function ObjectifRevenuApp({
       targetDate: state.targetDate,
     });
 
+    const nextPaymentsCount = state.payments.length + 1;
+
     setState((prev) => ({ ...prev, payments: [newPayment, ...prev.payments] }));
     setPaymentFeedback(nextFeedback);
     setPaymentAmount('');
     setShowPayment(false);
+
+    if (!isAuthenticated && nextPaymentsCount >= 2) {
+      setAccountPromptReason('payment-gate');
+      setShowAccountPrompt(true);
+    }
   };
 
   const addCharge = () => {
@@ -841,7 +860,9 @@ export default function ObjectifRevenuApp({
           <div>
             <p className="text-sm text-slate-300">Ton copilote revenu</p>
             <h1 className="text-2xl font-bold tracking-tight">Objectif du mois</h1>
-            <p className="mt-1 text-xs text-cyan-200">{userEmail}</p>
+            <p className="mt-1 text-xs text-cyan-200">
+              {isAuthenticated ? userEmail : 'Mode invité • progression enregistrée localement'}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -851,13 +872,26 @@ export default function ObjectifRevenuApp({
             >
               Réglages
             </Button>
-            <Button
-              variant="outline"
-              className="rounded-full border-rose-300/30 bg-slate-950/70 px-4 text-rose-100 shadow-[0_0_20px_rgba(251,113,133,0.12)] hover:bg-slate-900 hover:text-white"
-              onClick={onSignOut}
-            >
-              Sortir
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                variant="outline"
+                className="rounded-full border-rose-300/30 bg-slate-950/70 px-4 text-rose-100 shadow-[0_0_20px_rgba(251,113,133,0.12)] hover:bg-slate-900 hover:text-white"
+                onClick={onSignOut}
+              >
+                Sortir
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="rounded-full border-cyan-300/35 bg-slate-950/70 px-4 text-cyan-100 shadow-[0_0_20px_rgba(87,183,255,0.18)] hover:bg-slate-900 hover:text-white"
+                onClick={() => {
+                  setAccountPromptReason('manual-signin');
+                  setShowAccountPrompt(true);
+                }}
+              >
+                Connexion
+              </Button>
+            )}
           </div>
         </motion.div>
 
@@ -1599,50 +1633,60 @@ export default function ObjectifRevenuApp({
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="mx-auto my-auto w-full max-w-md rounded-[28px] border border-cyan-400/25 bg-[linear-gradient(180deg,rgba(10,15,35,0.98)_0%,rgba(17,24,58,0.98)_100%)] p-0 text-white shadow-[0_0_40px_rgba(34,211,238,0.18)] max-h-[calc(100dvh-2rem)] overflow-y-auto">
-          <DialogHeader className="border-b border-cyan-400/15 px-5 py-4">
-            <DialogTitle className="text-white">Paiement reçu</DialogTitle>
-          </DialogHeader>
-          <div className="px-4 pb-2">
-            {isSasu ? (
-              <p className="mb-2 mt-4 text-sm text-slate-300">
-                Saisie en {paymentInputLabel}
-                {usesVat ? ` • TVA ${Math.round(state.vatRate * 100)}%` : ''}
-              </p>
-            ) : null}
-            <Input
-              autoFocus
-              type="text"
-              inputMode="decimal"
-              enterKeyHint="done"
-              placeholder={paymentAmountPlaceholder}
-              value={paymentAmount}
-              onChange={(e) => handleAmountInputChange(e, setPaymentAmount)}
-              onPaste={(e) => handleAmountPaste(e, setPaymentAmount)}
-              className="h-14 rounded-2xl border border-cyan-400/25 bg-slate-950/80 px-4 text-lg text-white placeholder:text-slate-400"
-            />
-          </div>
-          <div className="grid grid-cols-4 gap-2 px-4 py-2">
-            {quickAmounts.map((amount) => (
+          <form onSubmit={handlePaymentSubmit}>
+            <DialogHeader className="border-b border-cyan-400/15 px-5 py-4">
+              <DialogTitle className="text-white">Paiement reçu</DialogTitle>
+            </DialogHeader>
+            <div className="px-4 pb-2">
+              {isSasu ? (
+                <p className="mb-2 mt-4 text-sm text-slate-300">
+                  Saisie en {paymentInputLabel}
+                  {usesVat ? ` • TVA ${Math.round(state.vatRate * 100)}%` : ''}
+                </p>
+              ) : null}
+              <Input
+                autoFocus
+                type="text"
+                inputMode="decimal"
+                enterKeyHint="done"
+                placeholder={paymentAmountPlaceholder}
+                value={paymentAmount}
+                onChange={(e) => handleAmountInputChange(e, setPaymentAmount)}
+                onPaste={(e) => handleAmountPaste(e, setPaymentAmount)}
+                className="h-14 rounded-2xl border border-cyan-400/25 bg-slate-950/80 px-4 text-lg text-white placeholder:text-slate-400"
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-2 px-4 py-2">
+              {quickAmounts.map((amount) => (
+                <Button
+                  key={amount}
+                  type="button"
+                  variant="outline"
+                  className="rounded-[18px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(16,24,61,0.95)_0%,rgba(7,11,30,0.98)_100%)] text-cyan-100 hover:bg-slate-700 hover:text-white"
+                  onClick={() => setPaymentAmount(String(amount))}
+                >
+                  {amount}€
+                </Button>
+              ))}
+            </div>
+            <DialogFooter className="px-4 pb-4 pt-2">
               <Button
-                key={amount}
-                variant="outline"
-                className="rounded-[18px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(16,24,61,0.95)_0%,rgba(7,11,30,0.98)_100%)] text-cyan-100 hover:bg-slate-700 hover:text-white"
-                onClick={() => setPaymentAmount(String(amount))}
+                type="submit"
+                className="h-12 rounded-[22px] border border-emerald-300/35 bg-[linear-gradient(180deg,rgba(34,197,94,0.95)_0%,rgba(16,185,129,0.95)_100%)] text-base font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,0.35)] hover:brightness-110"
               >
-                {amount}€
+                Valider
               </Button>
-            ))}
-          </div>
-          <DialogFooter className="px-4 pb-4 pt-2">
-            <Button
-              className="h-12 rounded-[22px] border border-emerald-300/35 bg-[linear-gradient(180deg,rgba(34,197,94,0.95)_0%,rgba(16,185,129,0.95)_100%)] text-base font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,0.35)] hover:brightness-110"
-              onClick={addPayment}
-            >
-              Valider
-            </Button>
-          </DialogFooter>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
+
+      <AccountPromptDialog
+        open={showAccountPrompt}
+        reason={accountPromptReason}
+        onOpenChange={setShowAccountPrompt}
+        onAuthenticated={onAuthenticated}
+      />
 
       <Dialog open={showCharge} onOpenChange={setShowCharge}>
         <DialogContent className="mx-auto my-auto w-full max-w-md rounded-[28px] border border-rose-400/25 bg-[linear-gradient(180deg,rgba(10,15,35,0.98)_0%,rgba(17,24,58,0.98)_100%)] p-0 text-white shadow-[0_0_40px_rgba(244,63,94,0.18)] max-h-[calc(100dvh-2rem)] overflow-y-auto">

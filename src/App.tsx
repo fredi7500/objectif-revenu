@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import ObjectifRevenuApp from './components/ObjectifRevenuApp';
-import AuthScreen from './components/AuthScreen';
 import {
+  GUEST_USER_ID,
   getStoredSession,
   signOut,
   subscribeToAuthChanges,
@@ -13,14 +13,12 @@ function App() {
 
   useEffect(() => subscribeToAuthChanges(setSession), []);
 
-  if (!session) {
-    return <AuthScreen onAuthenticated={setSession} />;
-  }
-
   return (
     <ObjectifRevenuApp
-      userId={session.userId}
-      userEmail={session.email}
+      userId={session?.userId ?? GUEST_USER_ID}
+      userEmail={session?.email ?? 'Mode invité'}
+      isAuthenticated={Boolean(session)}
+      onAuthenticated={setSession}
       onSignOut={() => {
         signOut();
         setSession(null);

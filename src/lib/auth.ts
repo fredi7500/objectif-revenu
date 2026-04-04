@@ -11,10 +11,14 @@ export type AuthSession = {
   signedInAt: string;
 };
 
+type PersistedEntry = { id?: string };
+
 const USERS_KEY = 'objectif-revenu-auth-users-v1';
 const SESSION_KEY = 'objectif-revenu-auth-session-v1';
 const APP_STORAGE_PREFIX = 'objectif-revenu-app-v3';
 const AUTH_EVENT = 'objectif-revenu-auth-change';
+
+export const GUEST_USER_ID = 'guest';
 
 function readUsers(): AuthUser[] {
   try {
@@ -34,6 +38,35 @@ function saveUsers(users: AuthUser[]) {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function readAppState(storageKey: string): Record<string, unknown> | null {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function dedupeEntries(entries: PersistedEntry[]) {
+  const seen = new Set<string>();
+
+  return entries.filter((entry) => {
+    if (!entry?.id) {
+      return true;
+    }
+
+    if (seen.has(entry.id)) {
+      return false;
+    }
+
+    seen.add(entry.id);
+    return true;
+  });
 }
 
 async function hashPassword(password: string) {
@@ -177,4 +210,48 @@ export function signOut() {
 
 export function getAppStorageKey(userId: string) {
   return `${APP_STORAGE_PREFIX}:${userId}`;
+}
+
+export function getGuestAppStorageKey() {
+  return getAppStorageKey(GUEST_USER_ID);
+}
+
+export function migrateGuestAppStateToUser(userId: string) {
+  if (!userId || userId === GUEST_USER_ID) return;
+
+  const guestKey = getGuestAppStorageKey();
+  const userKey = getAppStorageKey(userId);
+  const guestState = readAppState(guestKey);
+
+  if (!guestState) return;
+
+  const userState = readAppState(userKey);
+  if (!userState) {
+    localStorage.setItem(userKey, JSON.stringify(guestState));
+    localStorage.removeItem(guestKey);
+    return;
+  }
+
+  const guestPayments = Array.isArray(guestState.payments)
+    ? guestState.payments as PersistedEntry[]
+    : [];
+  const userPayments = Array.isArray(userState.payments)
+    ? userState.payments as PersistedEntry[]
+    : [];
+  const guestCharges = Array.isArray(guestState.charges)
+    ? guestState.charges as PersistedEntry[]
+    : [];
+  const userCharges = Array.isArray(userState.charges)
+    ? userState.charges as PersistedEntry[]
+    : [];
+
+  const mergedState = {
+    ...guestState,
+    ...userState,
+    payments: dedupeEntries([...guestPayments, ...userPayments]),
+    charges: dedupeEntries([...guestCharges, ...userCharges]),
+  };
+
+  localStorage.setItem(userKey, JSON.stringify(mergedState));
+  localStorage.removeItem(guestKey);
 }
