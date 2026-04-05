@@ -40,7 +40,12 @@ import {
 } from 'lucide-react';
 
 import AccountPromptDialog from '@/components/AccountPromptDialog';
-import { getAppStorageKey } from '@/lib/auth';
+import {
+  activatePremiumForUser,
+  getAppStorageKey,
+  isTrialExpired as isUserTrialExpired,
+  type AppUserProfile,
+} from '@/lib/auth';
 
 type PaymentInputMode = 'HT' | 'TTC';
 
@@ -67,9 +72,10 @@ type SasuMode = 'salaire' | 'dividendes';
 const MAX_AMOUNT = 1_000_000;
 const SASU_IS_RATE = 0.25;
 const MICRO_MAX_SALARY_GOAL = 5100;
-
 type AppState = {
   setupDone: boolean;
+  trialStartDate: string;
+  isPremium: boolean;
   salaryGoal: number;
   status: 'micro-entreprise (auto-entrepreneur)' | 'SASU';
   microActivity: MicroActivity;
@@ -285,6 +291,8 @@ function hasRecentPayment(payments: PaymentEntry[], now = new Date()) {
 function buildDefaultState(): AppState {
   return {
     setupDone: false,
+    trialStartDate: new Date().toISOString(),
+    isPremium: false,
     salaryGoal: 3000,
     status: 'micro-entreprise (auto-entrepreneur)',
     microActivity: 'services',
@@ -429,6 +437,7 @@ function FeedbackIcon({ variant }: { variant: FeedbackVariant }) {
 type ObjectifRevenuAppProps = {
   userId: string;
   userEmail: string;
+  userProfile: AppUserProfile | null;
   isAuthenticated: boolean;
   onSignOut: () => void;
 };
@@ -436,16 +445,19 @@ type ObjectifRevenuAppProps = {
 export default function ObjectifRevenuApp({
   userId,
   userEmail,
+  userProfile,
   isAuthenticated,
   onSignOut,
 }: ObjectifRevenuAppProps) {
   const storageKey = getAppStorageKey(userId);
+  const stripeCheckoutUrl = import.meta.env.VITE_STRIPE_CHECKOUT_URL as string | undefined;
   const [state, setState] = useState<AppState>(buildDefaultState());
   const [activeTab, setActiveTab] = useState('accueil');
   const [showSetup, setShowSetup] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCharge, setShowCharge] = useState(false);
   const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [accountPromptReason, setAccountPromptReason] = useState<'payment-gate' | 'manual-signin'>('payment-gate');
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -490,9 +502,15 @@ export default function ObjectifRevenuApp({
       const paymentInputMode: PaymentInputMode =
         parsed.paymentInputMode === 'TTC' ? 'TTC' : 'HT';
       const vatRate = sanitizeVatRate(Number(parsed.vatRate ?? 0.2));
+      const trialStartDate =
+        typeof parsed.trialStartDate === 'string' && parsed.trialStartDate
+          ? parsed.trialStartDate
+          : new Date().toISOString();
       const hydrated: AppState = {
         ...buildDefaultState(),
         ...parsed,
+        trialStartDate,
+        isPremium: Boolean(parsed.isPremium),
         paymentInputMode,
         vatRate,
         monthKey: currentMonth,
@@ -642,6 +660,75 @@ export default function ObjectifRevenuApp({
     localStorage.setItem(storageKey, JSON.stringify(state));
   }, [state, storageKey]);
 
+  useEffect(() => {
+    if (!userProfile) return;
+
+    setState((prev) => ({
+      ...prev,
+      trialStartDate: userProfile.trialStartDate,
+      isPremium: userProfile.isPremium,
+    }));
+  }, [userProfile?.trialStartDate, userProfile?.isPremium]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('premium') && !params.has('checkout')) {
+      return;
+    }
+
+    const checkoutStatus = params.get('checkout');
+    const premiumStatus = params.get('premium');
+    if (checkoutStatus !== 'success' && premiumStatus !== '1') {
+      return;
+    }
+
+    async function applyPremium() {
+      try {
+        if (userProfile?.id) {
+          const updatedProfile = await activatePremiumForUser(userProfile.id);
+          setState((prev) => ({
+            ...prev,
+            trialStartDate: updatedProfile.trialStartDate,
+            isPremium: updatedProfile.isPremium,
+          }));
+        } else {
+          setState((prev) => (prev.isPremium ? prev : { ...prev, isPremium: true }));
+        }
+      } catch (error) {
+        console.error('Erreur activation Premium:', error);
+        setPaymentFeedback({
+          variant: 'warning',
+          title: 'Activation en attente',
+          subtitle: 'Le paiement est revenu, mais Premium n’a pas encore pu être synchronisé.',
+          meta: 'Réessayez dans quelques secondes.',
+        });
+      } finally {
+        params.delete('checkout');
+        params.delete('premium');
+        const nextSearch = params.toString();
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+        window.history.replaceState({}, '', nextUrl);
+      }
+    }
+
+    void applyPremium();
+  }, [userProfile?.id]);
+
+  useEffect(() => {
+    const currentTrialExpired = userProfile
+      ? isUserTrialExpired(userProfile)
+      : !state.isPremium && isUserTrialExpired({
+          trialStartDate: state.trialStartDate,
+          isPremium: state.isPremium,
+        });
+
+    if (!currentTrialExpired) return;
+
+    if (showPayment || showCharge || showSetup) {
+      openUpgradePrompt();
+    }
+  }, [userProfile, state.isPremium, state.trialStartDate, showPayment, showCharge, showSetup, userId, userEmail]);
+
   const objectifCa = useMemo(() => {
     if (state.status === 'micro-entreprise (auto-entrepreneur)') {
       return apiResult?.caMonthly ?? 0;
@@ -721,6 +808,19 @@ export default function ObjectifRevenuApp({
   const progress = calculProgression(totalReceived, objectifCa);
   const progressLabel = Math.round(progress);
   const remaining = calculResteAEncaisser(objectifCa, totalReceived);
+  const effectiveTrialStartDate = userProfile?.trialStartDate ?? state.trialStartDate;
+  const effectiveIsPremium = userProfile?.isPremium ?? state.isPremium;
+  const trialExpired = userProfile
+    ? isUserTrialExpired(userProfile)
+    : isUserTrialExpired({
+        trialStartDate: effectiveTrialStartDate,
+        isPremium: effectiveIsPremium,
+      });
+  const trialStart = new Date(effectiveTrialStartDate);
+  const trialDaysElapsed = Number.isNaN(trialStart.getTime())
+    ? 0
+    : Math.max(0, Math.floor((Date.now() - trialStart.getTime()) / 86_400_000));
+  const trialDaysRemaining = Math.max(0, 10 - trialDaysElapsed);
   const displayedRemaining = usesVat
     ? roundCurrency(remaining * (1 + state.vatRate))
     : remaining;
@@ -741,6 +841,9 @@ export default function ObjectifRevenuApp({
   const paymentAmountPlaceholder = isSasu
     ? `Montant ${paymentInputLabel}`
     : '0 €';
+  const blockedActionMessage = trialExpired
+    ? 'Votre essai est terminé. Débloquez le suivi pour continuer à modifier vos données.'
+    : null;
   const getNextSalaryGoal = (value: string) => {
     const nextValue = parseAmountInput(value);
 
@@ -763,7 +866,48 @@ export default function ObjectifRevenuApp({
     }`;
   };
 
+  const openUpgradePrompt = () => {
+    setShowPayment(false);
+    setShowCharge(false);
+    setShowSetup(false);
+    setShowUpgradePrompt(true);
+  };
+
+  const guardMutationAction = (callback: () => void) => {
+    if (trialExpired) {
+      openUpgradePrompt();
+      return;
+    }
+
+    callback();
+  };
+
+  const redirectToCheckout = () => {
+    if (!stripeCheckoutUrl) {
+      setPaymentFeedback({
+        variant: 'warning',
+        title: 'Checkout non configuré',
+        subtitle: 'Ajoutez VITE_STRIPE_CHECKOUT_URL pour activer Stripe Checkout.',
+        meta: 'Tarif prévu : 5,99€/mois',
+      });
+      return;
+    }
+
+    if (!isAuthenticated || !userProfile?.id) {
+      setAccountPromptReason('manual-signin');
+      setShowAccountPrompt(true);
+      return;
+    }
+
+    window.location.href = stripeCheckoutUrl;
+  };
+
   const saveSetup = () => {
+    if (trialExpired) {
+      openUpgradePrompt();
+      return;
+    }
+
     setState((prev) => ({ ...prev, setupDone: true }));
     setShowSetup(false);
   };
@@ -775,6 +919,11 @@ export default function ObjectifRevenuApp({
 
   const handlePaymentSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (trialExpired) {
+      openUpgradePrompt();
+      return;
+    }
+
     const amount = parseAmountInput(paymentAmount);
     if (!amount || amount <= 0) return;
 
@@ -827,6 +976,11 @@ export default function ObjectifRevenuApp({
 
   const handleChargeSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (trialExpired) {
+      openUpgradePrompt();
+      return;
+    }
+
     const amount = parseAmountInput(chargeAmount);
     if (!amount || amount <= 0) return;
 
@@ -851,6 +1005,11 @@ export default function ObjectifRevenuApp({
   };
 
   const resetMonth = () => {
+    if (trialExpired) {
+      openUpgradePrompt();
+      return;
+    }
+
     setState((prev) => ({
       ...prev,
       payments: [],
@@ -877,12 +1036,29 @@ export default function ObjectifRevenuApp({
             <p className="mt-1 text-xs text-cyan-200">
               {isAuthenticated ? userEmail : 'Mode invité • progression enregistrée localement'}
             </p>
+            {trialExpired ? (
+              <div className="mt-2 inline-flex items-center rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200">
+                Essai expiré
+              </div>
+            ) : isAuthenticated && !state.isPremium ? (
+              <div className="mt-2 inline-flex items-center rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
+                Essai en cours • {trialDaysRemaining} jour{trialDaysRemaining > 1 ? 's' : ''} restant{trialDaysRemaining > 1 ? 's' : ''}
+              </div>
+            ) : !isAuthenticated ? (
+              <div className="mt-2 inline-flex items-center rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
+                Crée un compte pour enregistrer ta progression
+              </div>
+            ) : (
+              <div className="mt-2 inline-flex items-center rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                Accès Premium
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               className="rounded-full border-cyan-300/35 bg-slate-950/70 px-5 text-slate-100 shadow-[0_0_20px_rgba(87,183,255,0.18)] hover:bg-slate-900 hover:text-white"
-              onClick={() => setShowSetup(true)}
+              onClick={() => guardMutationAction(() => setShowSetup(true))}
             >
               Réglages
             </Button>
@@ -957,7 +1133,7 @@ export default function ObjectifRevenuApp({
                       </div>
                     </div>
 
-                    <div className="flex justify-center">
+                  <div className="flex justify-center">
                       <div className="rounded-full border border-cyan-300/35 bg-[linear-gradient(180deg,rgba(62,89,255,0.45)_0%,rgba(22,38,96,0.58)_100%)] px-5 py-2.5 text-sm font-semibold text-slate-100 shadow-[0_0_16px_rgba(96,165,250,0.2)] backdrop-blur-sm">
                         {daysLeft} jours pour atteindre ton objectif
                       </div>
@@ -1206,19 +1382,35 @@ export default function ObjectifRevenuApp({
 
                   <div className="grid grid-cols-2 gap-3">
                     <Button
-                      onClick={() => setShowPayment(true)}
+                      onClick={() => guardMutationAction(() => setShowPayment(true))}
                       className="h-14 w-full rounded-[22px] border border-emerald-300/35 bg-[linear-gradient(180deg,rgba(34,197,94,0.95)_0%,rgba(16,185,129,0.95)_100%)] text-base font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,0.35)] hover:brightness-110"
                     >
                       <Plus className="mr-2 h-5 w-5" /> Paiement reçu
                     </Button>
                     <Button
-                      onClick={() => setShowCharge(true)}
+                      onClick={() => guardMutationAction(() => setShowCharge(true))}
                       variant="outline"
                       className="h-14 w-full rounded-[22px] border border-rose-400/40 bg-[linear-gradient(180deg,rgba(244,63,94,0.95)_0%,rgba(190,18,60,0.95)_100%)] text-base font-semibold text-white shadow-[0_0_22px_rgba(244,63,94,0.35)] hover:brightness-110"
                     >
                       <Minus className="mr-2 h-5 w-5" /> Charge
                     </Button>
                   </div>
+
+                  {trialExpired ? (
+                    <div className="rounded-[24px] border border-amber-300/30 bg-[linear-gradient(180deg,rgba(82,44,12,0.55)_0%,rgba(47,25,7,0.82)_100%)] p-4 shadow-[0_0_24px_rgba(251,146,60,0.14)]">
+                      <p className="text-sm font-semibold text-amber-100">Vous êtes à {progressLabel}% de votre objectif.</p>
+                      <p className="mt-2 text-sm leading-6 text-amber-50/90">
+                        Débloquez le suivi pour continuer à avancer et atteindre votre revenu ce mois-ci.
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={redirectToCheckout}
+                        className="mt-4 h-11 w-full rounded-[18px] border border-amber-200/40 bg-[linear-gradient(180deg,rgba(251,191,36,0.96)_0%,rgba(245,158,11,0.95)_100%)] text-sm font-semibold text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.28)] hover:brightness-105"
+                      >
+                        Continuer avec Cash Pilot
+                      </Button>
+                    </div>
+                  ) : null}
 
                   <div className="rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-slate-800/70 to-slate-900/80 p-3 shadow-[0_0_10px_rgba(34,211,238,0.12)] text-sm text-slate-300">
                     Appuie sur <span className="font-semibold">Paiement reçu</span> dès que de l’argent rentre.
@@ -1304,14 +1496,14 @@ export default function ObjectifRevenuApp({
                 <Button
                   variant="outline"
                   className="flex-1 rounded-2xl border-cyan-300/20 bg-slate-900/60 text-white hover:bg-slate-800 hover:text-white"
-                  onClick={() => setShowSetup(true)}
+                  onClick={() => guardMutationAction(() => setShowSetup(true))}
                 >
                   Modifier l’objectif
                 </Button>
                 <Button
                   variant="outline"
                   className="flex-1 rounded-2xl border-rose-300/25 bg-slate-900/60 text-white hover:bg-slate-800 hover:text-white"
-                  onClick={resetMonth}
+                  onClick={() => guardMutationAction(resetMonth)}
                 >
                   Remise à zéro
                 </Button>
@@ -1369,6 +1561,50 @@ export default function ObjectifRevenuApp({
             >
               Fermer
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUpgradePrompt} onOpenChange={setShowUpgradePrompt}>
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-[28px] border border-amber-300/20 bg-[linear-gradient(180deg,rgba(25,16,6,0.98)_0%,rgba(42,23,8,0.98)_100%)] p-0 text-white shadow-[0_24px_80px_rgba(15,23,42,0.35)]">
+          <DialogHeader className="border-b border-amber-300/15 px-5 py-4 sm:px-6">
+            <div className="flex items-center gap-2">
+              <div className="rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-100">
+                Essai expiré
+              </div>
+            </div>
+            <DialogTitle className="pt-3 text-lg font-bold tracking-tight text-white">
+              Débloquez le suivi complet de Cash Pilot
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 px-5 py-5 text-sm leading-6 text-amber-50/90 sm:px-6">
+            <p>{blockedActionMessage}</p>
+            <div className="rounded-[22px] border border-amber-300/15 bg-black/15 p-4">
+              <p className="font-semibold text-white">Vous êtes à {progressLabel}% de votre objectif.</p>
+              <p className="mt-2">
+                Débloquez le suivi pour continuer à avancer et atteindre votre revenu ce mois-ci.
+              </p>
+            </div>
+            <p className="text-xs uppercase tracking-[0.18em] text-amber-200/80">Abonnement 5,99€/mois</p>
+          </div>
+          <DialogFooter className="border-t border-amber-300/15 px-5 py-4 sm:px-6">
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-[18px] border-amber-200/20 bg-transparent text-amber-50 hover:bg-white/5 hover:text-white sm:w-auto"
+                onClick={() => setShowUpgradePrompt(false)}
+              >
+                Plus tard
+              </Button>
+              <Button
+                type="button"
+                className="w-full rounded-[18px] border border-amber-200/40 bg-[linear-gradient(180deg,rgba(251,191,36,0.96)_0%,rgba(245,158,11,0.95)_100%)] text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.28)] hover:brightness-105 sm:w-auto"
+                onClick={redirectToCheckout}
+              >
+                Continuer avec Cash Pilot
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

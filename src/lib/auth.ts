@@ -7,6 +7,22 @@ export type AuthSession = {
   signedInAt: string;
 };
 
+type UserProfileRow = {
+  id: string;
+  email: string;
+  created_at: string;
+  trial_start_date: string;
+  is_premium: boolean;
+};
+
+export type AppUserProfile = {
+  id: string;
+  email: string;
+  createdAt: string;
+  trialStartDate: string;
+  isPremium: boolean;
+};
+
 type PersistedEntry = { id?: string };
 
 const SESSION_KEY = 'objectif-revenu-auth-session-v1';
@@ -17,6 +33,16 @@ export const GUEST_USER_ID = 'guest';
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function mapUserProfile(row: UserProfileRow): AppUserProfile {
+  return {
+    id: row.id,
+    email: normalizeEmail(row.email),
+    createdAt: row.created_at,
+    trialStartDate: row.trial_start_date,
+    isPremium: Boolean(row.is_premium),
+  };
 }
 
 function readAppState(storageKey: string): Record<string, unknown> | null {
@@ -161,6 +187,100 @@ export async function sendMagicLink(email: string) {
 export function signOut() {
   persistSession(null);
   void supabase.auth.signOut();
+}
+
+export async function getUserProfile(userId: string) {
+  if (!userId || userId === GUEST_USER_ID) return null;
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, created_at, trial_start_date, is_premium')
+    .eq('id', userId)
+    .maybeSingle<UserProfileRow>();
+
+  if (error) {
+    throw new Error(error.message || 'Impossible de charger le profil utilisateur.');
+  }
+
+  return data ? mapUserProfile(data) : null;
+}
+
+export async function getOrCreateUserProfile(userId: string, email: string) {
+  if (!userId || userId === GUEST_USER_ID) return null;
+
+  const normalizedEmail = normalizeEmail(email);
+  const existingProfile = await getUserProfile(userId);
+
+  if (existingProfile) {
+    if (existingProfile.email !== normalizedEmail) {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ email: normalizedEmail })
+        .eq('id', userId)
+        .select('id, email, created_at, trial_start_date, is_premium')
+        .single<UserProfileRow>();
+
+      if (error) {
+        throw new Error(error.message || 'Impossible de mettre à jour le profil utilisateur.');
+      }
+
+      return mapUserProfile(data);
+    }
+
+    return existingProfile;
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .insert({
+      id: userId,
+      email: normalizedEmail,
+      trial_start_date: new Date().toISOString(),
+      is_premium: false,
+    })
+    .select('id, email, created_at, trial_start_date, is_premium')
+    .single<UserProfileRow>();
+
+  if (error) {
+    throw new Error(error.message || 'Impossible de créer le profil utilisateur.');
+  }
+
+  return mapUserProfile(data);
+}
+
+export async function activatePremiumForUser(userId: string) {
+  if (!userId || userId === GUEST_USER_ID) {
+    throw new Error('Un compte utilisateur est requis pour activer Premium.');
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .update({ is_premium: true })
+    .eq('id', userId)
+    .select('id, email, created_at, trial_start_date, is_premium')
+    .single<UserProfileRow>();
+
+  if (error) {
+    throw new Error(error.message || 'Impossible d’activer Premium.');
+  }
+
+  return mapUserProfile(data);
+}
+
+export function isTrialExpired(
+  user: Pick<AppUserProfile, 'trialStartDate' | 'isPremium'> | null,
+  now = new Date()
+) {
+  if (!user || user.isPremium || !user.trialStartDate) {
+    return false;
+  }
+
+  const start = new Date(user.trialStartDate);
+  if (Number.isNaN(start.getTime())) {
+    return false;
+  }
+
+  return now.getTime() - start.getTime() > 10 * 86_400_000;
 }
 
 export function getAppStorageKey(userId: string) {
