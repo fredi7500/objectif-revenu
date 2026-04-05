@@ -767,15 +767,20 @@ export default function ObjectifRevenuApp({
     setShowSetup(false);
   };
 
-  const handlePaymentSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSetupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    addPayment();
+    saveSetup();
   };
 
-  const addPayment = () => {
+  const handlePaymentSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const amount = parseAmountInput(paymentAmount);
     if (!amount || amount <= 0) return;
 
+    addPayment(amount);
+  };
+
+  const addPayment = (amount: number) => {
     const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random()}`;
@@ -819,10 +824,15 @@ export default function ObjectifRevenuApp({
     }
   };
 
-  const addCharge = () => {
+  const handleChargeSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const amount = parseAmountInput(chargeAmount);
     if (!amount || amount <= 0) return;
 
+    addCharge(amount);
+  };
+
+  const addCharge = (amount: number) => {
     const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random()}`;
@@ -1319,6 +1329,7 @@ export default function ObjectifRevenuApp({
 
       <Dialog open={showSetup} onOpenChange={setShowSetup}>
         <DialogContent className="flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden rounded-[32px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(240,249,255,0.98)_100%)] p-0 shadow-[0_24px_80px_rgba(15,23,42,0.28)] sm:max-h-[calc(100dvh-3rem)] sm:max-w-xl">
+          <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSetupSubmit}>
           <DialogHeader className="relative shrink-0 overflow-hidden border-b border-cyan-100 px-5 py-5 sm:px-6">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.14),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,249,255,0.94)_100%)]" />
             <div className="absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/70 to-transparent" />
@@ -1405,6 +1416,7 @@ export default function ObjectifRevenuApp({
                     </label>
                     <Input
                       type="date"
+                      enterKeyHint="done"
                       value={state.targetDate}
                       onChange={(e) => setState((prev) => ({ ...prev, targetDate: e.target.value }))}
                       className="h-12 rounded-[20px] border border-slate-200 bg-slate-50/80 px-4 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] outline-none transition focus:border-cyan-400 focus:bg-white"
@@ -1623,14 +1635,16 @@ export default function ObjectifRevenuApp({
               <p className="hidden text-sm text-slate-500 sm:block">
                 Les changements sont appliques immediatement dans ton espace.
               </p>
+              <button type="submit" style={{ display: 'none' }} aria-hidden="true" />
               <Button
-                onClick={saveSetup}
+                type="submit"
                 className="h-12 w-full rounded-[20px] bg-[linear-gradient(180deg,#0f172a_0%,#111827_100%)] text-base font-semibold text-white shadow-[0_18px_36px_rgba(15,23,42,0.24)] hover:brightness-110 sm:w-auto sm:min-w-[180px]"
               >
                 Enregistrer
               </Button>
             </div>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -1673,6 +1687,7 @@ export default function ObjectifRevenuApp({
               ))}
             </div>
             <DialogFooter className="px-4 pb-4 pt-2">
+              <button type="submit" style={{ display: 'none' }} aria-hidden="true" />
               <Button
                 type="submit"
                 className="h-12 rounded-[22px] border border-emerald-300/35 bg-[linear-gradient(180deg,rgba(34,197,94,0.95)_0%,rgba(16,185,129,0.95)_100%)] text-base font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,0.35)] hover:brightness-110"
@@ -1692,30 +1707,33 @@ export default function ObjectifRevenuApp({
 
       <Dialog open={showCharge} onOpenChange={setShowCharge}>
         <DialogContent className="mx-auto my-auto w-full max-w-md rounded-[28px] border border-rose-400/25 bg-[linear-gradient(180deg,rgba(10,15,35,0.98)_0%,rgba(17,24,58,0.98)_100%)] p-0 text-white shadow-[0_0_40px_rgba(244,63,94,0.18)] max-h-[calc(100dvh-2rem)] overflow-y-auto">
-          <DialogHeader className="border-b border-rose-400/15 px-5 py-4">
-            <DialogTitle className="text-white">Ajouter une charge</DialogTitle>
-          </DialogHeader>
-          <div className="px-4 pb-2 pt-4">
-            <Input
-              autoFocus
-              type="text"
-              inputMode="decimal"
-              enterKeyHint="done"
-              placeholder="Montant en €"
-              value={chargeAmount}
-              onChange={(e) => handleAmountInputChange(e, setChargeAmount)}
-              onPaste={(e) => handleAmountPaste(e, setChargeAmount)}
-              className="h-14 rounded-2xl border border-rose-400/25 bg-slate-950/80 px-4 text-lg text-white placeholder:text-slate-400"
-            />
-          </div>
-          <DialogFooter className="px-4 pb-4 pt-2">
-            <Button
-              className="h-12 rounded-[22px] border border-rose-400/40 bg-[linear-gradient(180deg,rgba(244,63,94,0.95)_0%,rgba(190,18,60,0.95)_100%)] text-base font-semibold text-white shadow-[0_0_22px_rgba(244,63,94,0.35)] hover:brightness-110"
-              onClick={addCharge}
-            >
-              Valider
-            </Button>
-          </DialogFooter>
+          <form onSubmit={handleChargeSubmit}>
+            <DialogHeader className="border-b border-rose-400/15 px-5 py-4">
+              <DialogTitle className="text-white">Ajouter une charge</DialogTitle>
+            </DialogHeader>
+            <div className="px-4 pb-2 pt-4">
+              <Input
+                autoFocus
+                type="text"
+                inputMode="decimal"
+                enterKeyHint="done"
+                placeholder="Montant en €"
+                value={chargeAmount}
+                onChange={(e) => handleAmountInputChange(e, setChargeAmount)}
+                onPaste={(e) => handleAmountPaste(e, setChargeAmount)}
+                className="h-14 rounded-2xl border border-rose-400/25 bg-slate-950/80 px-4 text-lg text-white placeholder:text-slate-400"
+              />
+            </div>
+            <DialogFooter className="px-4 pb-4 pt-2">
+              <button type="submit" style={{ display: 'none' }} aria-hidden="true" />
+              <Button
+                type="submit"
+                className="h-12 rounded-[22px] border border-rose-400/40 bg-[linear-gradient(180deg,rgba(244,63,94,0.95)_0%,rgba(190,18,60,0.95)_100%)] text-base font-semibold text-white shadow-[0_0_22px_rgba(244,63,94,0.35)] hover:brightness-110"
+              >
+                Valider
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

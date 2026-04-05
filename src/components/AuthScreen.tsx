@@ -49,7 +49,7 @@ export default function AuthScreen() {
             </div>
             <div>
               <p className="text-sm uppercase tracking-[0.32em] text-cyan-300">Espace protege</p>
-              <h1 className="mt-2 text-4xl font-black tracking-tight text-white">Objectif revenu</h1>
+              <h1 className="mt-2 text-4xl font-black tracking-tight text-white">Cash Pilot</h1>
             </div>
             <p className="text-sm text-slate-300">
               Entre ton email pour recevoir ton lien de connexion et retrouver ton suivi mensuel.
