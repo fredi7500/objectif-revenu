@@ -445,6 +445,7 @@ export default function ObjectifRevenuApp({
   const [showSetup, setShowSetup] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCharge, setShowCharge] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [accountPromptReason, setAccountPromptReason] = useState<'payment-gate' | 'manual-signin'>('payment-gate');
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -1323,9 +1324,54 @@ export default function ObjectifRevenuApp({
           <div className="mb-1 flex items-center gap-2 font-medium text-slate-100">
             <Download className="h-4 w-4 text-cyan-300" /> Astuce installation
           </div>
-          Ajoute cette web-app à ton écran d’accueil pour l’utiliser comme une vraie app.
+          <p>Ajoute cette web-app à ton écran d’accueil pour l’utiliser comme une vraie app.</p>
+          <button
+            type="button"
+            onClick={() => setShowInstallHelp(true)}
+            className="mt-2 inline-flex text-sm font-semibold text-cyan-200 transition hover:text-cyan-100"
+          >
+            Voir comment l’installer
+          </button>
         </div>
       </div>
+
+      <Dialog open={showInstallHelp} onOpenChange={setShowInstallHelp}>
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-[28px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(15,23,42,0.98)_0%,rgba(17,24,39,0.98)_100%)] p-0 text-white shadow-[0_24px_80px_rgba(15,23,42,0.35)]">
+          <DialogHeader className="border-b border-cyan-400/15 px-5 py-4 sm:px-6">
+            <DialogTitle className="text-lg font-bold tracking-tight text-white">
+              Installer Cash Pilot sur votre téléphone
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 px-5 py-5 text-sm leading-6 text-slate-300 sm:px-6">
+            <section className="rounded-[22px] border border-cyan-400/15 bg-slate-900/50 p-4">
+              <h3 className="text-sm font-semibold text-white">iPhone (Safari)</h3>
+              <ol className="mt-3 space-y-2 text-slate-300">
+                <li>1. Appuyez sur le bouton “Partager”</li>
+                <li>2. Cliquez sur “Sur l’écran d’accueil”</li>
+                <li>3. Validez</li>
+              </ol>
+            </section>
+            <section className="rounded-[22px] border border-cyan-400/15 bg-slate-900/50 p-4">
+              <h3 className="text-sm font-semibold text-white">Android (Chrome)</h3>
+              <ol className="mt-3 space-y-2 text-slate-300">
+                <li>1. Ouvrez le menu (3 points)</li>
+                <li>2. Cliquez sur “Ajouter à l’écran d’accueil”</li>
+                <li>3. Confirmez</li>
+              </ol>
+            </section>
+          </div>
+          <DialogFooter className="border-t border-cyan-400/15 px-5 py-4 sm:px-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-[20px] border-cyan-300/20 bg-slate-900/60 text-white hover:bg-slate-800 hover:text-white sm:w-auto"
+              onClick={() => setShowInstallHelp(false)}
+            >
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showSetup} onOpenChange={setShowSetup}>
         <DialogContent className="flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden rounded-[32px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(240,249,255,0.98)_100%)] p-0 shadow-[0_24px_80px_rgba(15,23,42,0.28)] sm:max-h-[calc(100dvh-3rem)] sm:max-w-xl">
