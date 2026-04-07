@@ -72,7 +72,7 @@ const seoSections = [
     paragraphs: [
       'Le revenu d’un indépendant, d’un freelance ou d’un auto-entrepreneur ne se résume pas au chiffre d’affaires encaissé. Il faut tenir compte du statut, des prélèvements et du niveau d’activité réellement nécessaire.',
       'La méthode la plus simple consiste à partir du revenu net souhaité, puis à remonter vers le chiffre d’affaires à viser. Vous obtenez ainsi un repère clair pour piloter votre activité.',
-      'Cash Pilot vous aide à faire ce calcul revenu rapidement et à suivre votre progression sans perdre de temps.',
+      'Cap Revenu vous aide à faire ce calcul revenu rapidement et à suivre votre progression sans perdre de temps.',
     ],
   },
   {
@@ -88,7 +88,7 @@ const seoSections = [
     paragraphs: [
       'Beaucoup d’indépendants regardent leur activité trop tard, alors que les décisions utiles se prennent pendant le mois. Suivre son objectif de revenu permet d’agir avant de subir un écart.',
       'Vous savez ce qui a déjà été encaissé, ce qu’il reste à produire et si votre rythme actuel est suffisant. Cette visibilité améliore le pilotage du revenu et réduit l’incertitude.',
-      'Cash Pilot transforme ce suivi en indicateurs simples, lisibles et directement utiles pour décider.',
+      'Cap Revenu transforme ce suivi en indicateurs simples, lisibles et directement utiles pour décider.',
     ],
   },
 ];
@@ -102,7 +102,7 @@ const faqItems = [
   {
     question: 'Quel chiffre d’affaires pour 2000€, 3000€ ou 5000€ net ?',
     answer:
-      'Le montant varie selon le statut, les charges et les prélèvements applicables. Cash Pilot permet de partir de votre objectif de revenu mensuel pour obtenir une estimation de chiffre d’affaires plus précise.',
+      'Le montant varie selon le statut, les charges et les prélèvements applicables. Cap Revenu permet de partir de votre objectif de revenu mensuel pour obtenir une estimation de chiffre d’affaires plus précise.',
   },
 ];
 
@@ -111,9 +111,9 @@ export default function LandingPage() {
     <MarketingLayout
       metadata={{
         title:
-          'Simulateur revenu indépendant : combien de chiffre d’affaires viser ? | Cash Pilot',
+          'Simulateur revenu indépendant : combien de chiffre d’affaires viser ? | Cap Revenu',
         description:
-          'Calculez combien vous devez encaisser pour atteindre votre revenu mensuel avec Cash Pilot, outil de calcul de revenu pour indépendant, freelance et auto-entrepreneur.',
+          'Calculez combien vous devez encaisser pour atteindre votre revenu mensuel avec Cap Revenu, outil de calcul de revenu pour indépendant, freelance et auto-entrepreneur.',
       }}
     >
       <section className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pb-24 lg:pt-10">
@@ -132,21 +132,22 @@ export default function LandingPage() {
               <div className="flex items-center gap-3">
                 <img
                   src="/logo-cashpilot.png"
-                  alt="Cash Pilot logo"
+                  alt="Cap Revenu logo"
                   className="h-9 w-auto object-contain sm:h-10"
                 />
+                {/* Replace this asset when the new Cap Revenu logo image is available if the bitmap still shows "Cash Pilot". */}
                 <span className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  Cash Pilot
+                  Cap Revenu
                 </span>
               </div>
               <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                Calculez combien vous devez encaisser pour atteindre votre revenu mensuel
+                Arrêtez de piloter votre revenu à l’aveugle
               </h1>
               <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                Arrêtez de piloter à l’aveugle. Définissez un objectif clair et suivez exactement ce qu’il vous reste à encaisser pour atteindre votre revenu.
+                Cap Revenu vous montre combien encaisser et où vous en êtes, en un coup d’œil.
               </p>
               <p className="max-w-xl text-base leading-7 text-slate-600">
-                Cash Pilot est un simulateur revenu pour indépendant, freelance et auto-entrepreneur qui transforme votre objectif en plan d’action concret, sans tableur ni calculs compliqués.
+                Fixez votre objectif, suivez votre progression et sachez exactement ce qu’il vous reste à encaisser.
               </p>
             </div>
 
@@ -234,7 +235,7 @@ export default function LandingPage() {
                 L’application vous indique quoi viser, quoi suivre et combien il reste.
               </h2>
               <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-                Cash Pilot transforme votre revenu cible en estimation de chiffre d’affaires, suit vos
+                Cap Revenu transforme votre revenu cible en estimation de chiffre d’affaires, suit vos
                 encaissements et vous montre immédiatement ce qu’il reste à atteindre.
               </p>
             </CardContent>

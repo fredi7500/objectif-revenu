@@ -1378,7 +1378,7 @@ export default function ObjectifRevenuApp({
                         disabled={checkoutLoading}
                         className="mt-4 h-11 w-full rounded-[18px] border border-amber-200/40 bg-[linear-gradient(180deg,rgba(251,191,36,0.96)_0%,rgba(245,158,11,0.95)_100%)] text-sm font-semibold text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.28)] hover:brightness-105"
                       >
-                        {checkoutLoading ? 'Ouverture...' : 'Continuer avec Cash Pilot'}
+                        {checkoutLoading ? 'Ouverture...' : 'Continuer avec Cap Revenu'}
                       </Button>
                     </div>
                   ) : null}
@@ -1502,7 +1502,7 @@ export default function ObjectifRevenuApp({
         <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-[28px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(15,23,42,0.98)_0%,rgba(17,24,39,0.98)_100%)] p-0 text-white shadow-[0_24px_80px_rgba(15,23,42,0.35)]">
           <DialogHeader className="border-b border-cyan-400/15 px-5 py-4 sm:px-6">
             <DialogTitle className="text-lg font-bold tracking-tight text-white">
-              Installer Cash Pilot sur votre téléphone
+              Installer Cap Revenu sur votre téléphone
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 px-5 py-5 text-sm leading-6 text-slate-300 sm:px-6">
@@ -1545,7 +1545,7 @@ export default function ObjectifRevenuApp({
               </div>
             </div>
             <DialogTitle className="pt-3 text-lg font-bold tracking-tight text-white">
-              Débloquez le suivi complet de Cash Pilot
+              Débloquez le suivi complet de Cap Revenu
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 px-5 py-5 text-sm leading-6 text-amber-50/90 sm:px-6">
@@ -1574,7 +1574,7 @@ export default function ObjectifRevenuApp({
                 onClick={redirectToCheckout}
                 disabled={checkoutLoading}
               >
-                {checkoutLoading ? 'Ouverture...' : 'Continuer avec Cash Pilot'}
+                {checkoutLoading ? 'Ouverture...' : 'Continuer avec Cap Revenu'}
               </Button>
             </div>
           </DialogFooter>

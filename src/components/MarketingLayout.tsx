@@ -24,13 +24,14 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
 
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
         <a href="/" className="flex items-center gap-3">
+          {/* Replace this asset when the new Cap Revenu logo image is available if the bitmap still shows "Cash Pilot". */}
           <img
             src="/logo-cashpilot.png"
-            alt="Cash Pilot logo"
+            alt="Cap Revenu logo"
             className="h-10 w-auto rounded-xl object-contain shadow-[0_20px_50px_rgba(15,23,42,0.14)] sm:h-11"
           />
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Cash Pilot</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Cap Revenu</p>
             <p className="text-sm text-slate-600">Simulateur de revenu pour indépendants</p>
           </div>
         </a>
@@ -54,10 +55,10 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
         <div className="flex items-center gap-3">
           <img
             src="/logo-cashpilot.png"
-            alt="Cash Pilot logo"
+            alt="Cap Revenu logo"
             className="h-8 w-auto object-contain"
           />
-          <span>Cash Pilot</span>
+          <span>Cap Revenu</span>
         </div>
         <div className="flex flex-wrap gap-3">
           <a href="/" className="transition hover:text-slate-950">
@@ -72,7 +73,7 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
             Simulateur
           </a>
         </div>
-        <p>Cash Pilot vous aide à estimer votre revenu mensuel, votre chiffre d’affaires cible et votre progression.</p>
+        <p>Cap Revenu vous aide à estimer votre revenu mensuel, votre chiffre d’affaires cible et votre progression.</p>
       </footer>
     </div>
   );

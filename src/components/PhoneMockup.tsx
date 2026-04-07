@@ -6,7 +6,7 @@ type PhoneMockupProps = {
 
 export default function PhoneMockup({
   imageSrc = '/visuel.png',
-  alt = 'Capture de l’application Cash Pilot',
+  alt = 'Capture de l’application Cap Revenu',
   className = '',
 }: PhoneMockupProps) {
   return (
