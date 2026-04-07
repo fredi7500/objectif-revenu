@@ -41,7 +41,6 @@ import {
 
 import AccountPromptDialog from '@/components/AccountPromptDialog';
 import {
-  createCheckoutSession,
   getAppStorageKey,
   isTrialExpired as isUserTrialExpired,
   type AppUserProfile,
@@ -72,6 +71,9 @@ type SasuMode = 'salaire' | 'dividendes';
 const MAX_AMOUNT = 1_000_000;
 const SASU_IS_RATE = 0.25;
 const MICRO_MAX_SALARY_GOAL = 5100;
+const TEMPORARY_STRIPE_PAYMENT_LINK =
+  'https://buy.stripe.com/test_5kQ6oJgPf2s3a4W0MLcMM00';
+
 type AppState = {
   setupDone: boolean;
   trialStartDate: string;
@@ -850,17 +852,19 @@ export default function ObjectifRevenuApp({
 
     try {
       setCheckoutLoading(true);
-      const checkoutUrl = await createCheckoutSession();
-      window.location.assign(checkoutUrl);
+      // Temporary Stripe Payment Link integration.
+      // Do not unlock Premium on the client after redirect or return pages.
+      // A Stripe webhook must later confirm payment and update public.profiles.is_premium = true.
+      window.location.assign(TEMPORARY_STRIPE_PAYMENT_LINK);
     } catch (error) {
-      console.error('Erreur création checkout Stripe:', error);
+      console.error('Erreur ouverture paiement Stripe:', error);
       setPaymentFeedback({
         variant: 'warning',
         title: 'Paiement indisponible',
         subtitle:
           error instanceof Error
             ? error.message
-            : 'Impossible d’ouvrir Stripe Checkout pour le moment.',
+            : 'Impossible d’ouvrir le lien de paiement Stripe pour le moment.',
         meta: 'Réessayez dans quelques instants.',
       });
     } finally {
