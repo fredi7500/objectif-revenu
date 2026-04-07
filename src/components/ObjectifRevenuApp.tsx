@@ -72,7 +72,7 @@ const MAX_AMOUNT = 1_000_000;
 const SASU_IS_RATE = 0.25;
 const MICRO_MAX_SALARY_GOAL = 5100;
 const TEMPORARY_STRIPE_PAYMENT_LINK =
-  'https://buy.stripe.com/test_5kQ6oJgPf2s3a4W0MLcMM00';
+  'https://buy.stripe.com/28EdR99GhgkPccP7N52Ji01';
 
 type AppState = {
   setupDone: boolean;
