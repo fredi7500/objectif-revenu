@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import ObjectifRevenuApp from './components/ObjectifRevenuApp';
 import {
-  getOrCreateUserProfile,
   GUEST_USER_ID,
+  getOrCreateCurrentUserProfile,
   getStoredSession,
   type AppUserProfile,
   migrateGuestAppStateToUser,
@@ -24,13 +24,13 @@ function App() {
     let cancelled = false;
 
     async function syncUserProfile() {
-      if (!session?.userId || !session.email) {
+      if (!session?.userId) {
         setUserProfile(null);
         return;
       }
 
       try {
-        const profile = await getOrCreateUserProfile(session.userId, session.email);
+        const profile = await getOrCreateCurrentUserProfile();
         if (!cancelled) {
           setUserProfile(profile);
         }
@@ -47,7 +47,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [session?.userId, session?.email]);
+  }, [session?.userId]);
 
   return (
     <ObjectifRevenuApp

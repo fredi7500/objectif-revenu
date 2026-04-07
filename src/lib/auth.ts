@@ -7,6 +7,11 @@ export type AuthSession = {
   signedInAt: string;
 };
 
+export type AuthenticatedUser = {
+  userId: string;
+  email: string;
+};
+
 type UserProfileRow = {
   id: string;
   email: string;
@@ -193,7 +198,7 @@ export async function getUserProfile(userId: string) {
   if (!userId || userId === GUEST_USER_ID) return null;
 
   const { data, error } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id, email, created_at, trial_start_date, is_premium')
     .eq('id', userId)
     .maybeSingle<UserProfileRow>();
@@ -214,7 +219,7 @@ export async function getOrCreateUserProfile(userId: string, email: string) {
   if (existingProfile) {
     if (existingProfile.email !== normalizedEmail) {
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({ email: normalizedEmail })
         .eq('id', userId)
         .select('id, email, created_at, trial_start_date, is_premium')
@@ -231,7 +236,7 @@ export async function getOrCreateUserProfile(userId: string, email: string) {
   }
 
   const { data, error } = await supabase
-    .from('users')
+    .from('profiles')
     .insert({
       id: userId,
       email: normalizedEmail,
@@ -248,13 +253,85 @@ export async function getOrCreateUserProfile(userId: string, email: string) {
   return mapUserProfile(data);
 }
 
+export async function getAuthenticatedUser() {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    throw new Error(error.message || 'Impossible de récupérer l’utilisateur connecté.');
+  }
+
+  if (!user?.id || !user.email) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    email: normalizeEmail(user.email),
+  } satisfies AuthenticatedUser;
+}
+
+export async function getOrCreateCurrentUserProfile() {
+  const authUser = await getAuthenticatedUser();
+  if (!authUser) {
+    return null;
+  }
+
+  return getOrCreateUserProfile(authUser.userId, authUser.email);
+}
+
+export async function getAccessToken() {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error) {
+    throw new Error(error.message || 'Impossible de récupérer la session utilisateur.');
+  }
+
+  return session?.access_token ?? null;
+}
+
+export async function createCheckoutSession() {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    throw new Error('Vous devez être connecté pour continuer.');
+  }
+
+  const response = await fetch('/api/create-checkout-session', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      payload && typeof payload.error === 'string'
+        ? payload.error
+        : 'Impossible de créer la session de paiement.';
+    throw new Error(message);
+  }
+
+  if (!payload || typeof payload.url !== 'string' || !payload.url) {
+    throw new Error('L’URL Stripe est invalide.');
+  }
+
+  return payload.url;
+}
+
 export async function activatePremiumForUser(userId: string) {
   if (!userId || userId === GUEST_USER_ID) {
     throw new Error('Un compte utilisateur est requis pour activer Premium.');
   }
 
   const { data, error } = await supabase
-    .from('users')
+    .from('profiles')
     .update({ is_premium: true })
     .eq('id', userId)
     .select('id, email, created_at, trial_start_date, is_premium')

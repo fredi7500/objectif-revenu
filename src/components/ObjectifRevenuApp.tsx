@@ -41,7 +41,7 @@ import {
 
 import AccountPromptDialog from '@/components/AccountPromptDialog';
 import {
-  activatePremiumForUser,
+  createCheckoutSession,
   getAppStorageKey,
   isTrialExpired as isUserTrialExpired,
   type AppUserProfile,
@@ -450,7 +450,6 @@ export default function ObjectifRevenuApp({
   onSignOut,
 }: ObjectifRevenuAppProps) {
   const storageKey = getAppStorageKey(userId);
-  const stripeCheckoutUrl = import.meta.env.VITE_STRIPE_CHECKOUT_URL as string | undefined;
   const [state, setState] = useState<AppState>(buildDefaultState());
   const [activeTab, setActiveTab] = useState('accueil');
   const [showSetup, setShowSetup] = useState(false);
@@ -463,6 +462,7 @@ export default function ObjectifRevenuApp({
   const [paymentAmount, setPaymentAmount] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
   const [paymentFeedback, setPaymentFeedback] = useState<FeedbackState | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const [apiResult, setApiResult] = useState<{
     caMonthly: number;
@@ -671,50 +671,6 @@ export default function ObjectifRevenuApp({
   }, [userProfile?.trialStartDate, userProfile?.isPremium]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has('premium') && !params.has('checkout')) {
-      return;
-    }
-
-    const checkoutStatus = params.get('checkout');
-    const premiumStatus = params.get('premium');
-    if (checkoutStatus !== 'success' && premiumStatus !== '1') {
-      return;
-    }
-
-    async function applyPremium() {
-      try {
-        if (userProfile?.id) {
-          const updatedProfile = await activatePremiumForUser(userProfile.id);
-          setState((prev) => ({
-            ...prev,
-            trialStartDate: updatedProfile.trialStartDate,
-            isPremium: updatedProfile.isPremium,
-          }));
-        } else {
-          setState((prev) => (prev.isPremium ? prev : { ...prev, isPremium: true }));
-        }
-      } catch (error) {
-        console.error('Erreur activation Premium:', error);
-        setPaymentFeedback({
-          variant: 'warning',
-          title: 'Activation en attente',
-          subtitle: 'Le paiement est revenu, mais Premium n’a pas encore pu être synchronisé.',
-          meta: 'Réessayez dans quelques secondes.',
-        });
-      } finally {
-        params.delete('checkout');
-        params.delete('premium');
-        const nextSearch = params.toString();
-        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
-        window.history.replaceState({}, '', nextUrl);
-      }
-    }
-
-    void applyPremium();
-  }, [userProfile?.id]);
-
-  useEffect(() => {
     const currentTrialExpired = userProfile
       ? isUserTrialExpired(userProfile)
       : !state.isPremium && isUserTrialExpired({
@@ -810,17 +766,20 @@ export default function ObjectifRevenuApp({
   const remaining = calculResteAEncaisser(objectifCa, totalReceived);
   const effectiveTrialStartDate = userProfile?.trialStartDate ?? state.trialStartDate;
   const effectiveIsPremium = userProfile?.isPremium ?? state.isPremium;
-  const trialExpired = userProfile
-    ? isUserTrialExpired(userProfile)
-    : isUserTrialExpired({
-        trialStartDate: effectiveTrialStartDate,
-        isPremium: effectiveIsPremium,
-      });
+  const shouldApplyTrial = isAuthenticated && !effectiveIsPremium;
+  const trialExpired = shouldApplyTrial && (
+    userProfile
+      ? isUserTrialExpired(userProfile)
+      : isUserTrialExpired({
+          trialStartDate: effectiveTrialStartDate,
+          isPremium: effectiveIsPremium,
+        })
+  );
   const trialStart = new Date(effectiveTrialStartDate);
   const trialDaysElapsed = Number.isNaN(trialStart.getTime())
     ? 0
     : Math.max(0, Math.floor((Date.now() - trialStart.getTime()) / 86_400_000));
-  const trialDaysRemaining = Math.max(0, 10 - trialDaysElapsed);
+  const trialDaysRemaining = shouldApplyTrial ? Math.max(0, 10 - trialDaysElapsed) : 0;
   const displayedRemaining = usesVat
     ? roundCurrency(remaining * (1 + state.vatRate))
     : remaining;
@@ -882,24 +841,31 @@ export default function ObjectifRevenuApp({
     callback();
   };
 
-  const redirectToCheckout = () => {
-    if (!stripeCheckoutUrl) {
-      setPaymentFeedback({
-        variant: 'warning',
-        title: 'Checkout non configuré',
-        subtitle: 'Ajoutez VITE_STRIPE_CHECKOUT_URL pour activer Stripe Checkout.',
-        meta: 'Tarif prévu : 5,99€/mois',
-      });
-      return;
-    }
-
+  const redirectToCheckout = async () => {
     if (!isAuthenticated || !userProfile?.id) {
       setAccountPromptReason('manual-signin');
       setShowAccountPrompt(true);
       return;
     }
 
-    window.location.href = stripeCheckoutUrl;
+    try {
+      setCheckoutLoading(true);
+      const checkoutUrl = await createCheckoutSession();
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      console.error('Erreur création checkout Stripe:', error);
+      setPaymentFeedback({
+        variant: 'warning',
+        title: 'Paiement indisponible',
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : 'Impossible d’ouvrir Stripe Checkout pour le moment.',
+        meta: 'Réessayez dans quelques instants.',
+      });
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   const saveSetup = () => {
@@ -1040,7 +1006,7 @@ export default function ObjectifRevenuApp({
               <div className="mt-2 inline-flex items-center rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200">
                 Essai expiré
               </div>
-            ) : isAuthenticated && !state.isPremium ? (
+            ) : isAuthenticated && !effectiveIsPremium ? (
               <div className="mt-2 inline-flex items-center rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
                 Essai en cours • {trialDaysRemaining} jour{trialDaysRemaining > 1 ? 's' : ''} restant{trialDaysRemaining > 1 ? 's' : ''}
               </div>
@@ -1405,9 +1371,10 @@ export default function ObjectifRevenuApp({
                       <Button
                         type="button"
                         onClick={redirectToCheckout}
+                        disabled={checkoutLoading}
                         className="mt-4 h-11 w-full rounded-[18px] border border-amber-200/40 bg-[linear-gradient(180deg,rgba(251,191,36,0.96)_0%,rgba(245,158,11,0.95)_100%)] text-sm font-semibold text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.28)] hover:brightness-105"
                       >
-                        Continuer avec Cash Pilot
+                        {checkoutLoading ? 'Ouverture...' : 'Continuer avec Cash Pilot'}
                       </Button>
                     </div>
                   ) : null}
@@ -1601,8 +1568,9 @@ export default function ObjectifRevenuApp({
                 type="button"
                 className="w-full rounded-[18px] border border-amber-200/40 bg-[linear-gradient(180deg,rgba(251,191,36,0.96)_0%,rgba(245,158,11,0.95)_100%)] text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.28)] hover:brightness-105 sm:w-auto"
                 onClick={redirectToCheckout}
+                disabled={checkoutLoading}
               >
-                Continuer avec Cash Pilot
+                {checkoutLoading ? 'Ouverture...' : 'Continuer avec Cash Pilot'}
               </Button>
             </div>
           </DialogFooter>

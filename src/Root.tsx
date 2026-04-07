@@ -1,13 +1,21 @@
 import { useEffect, useState } from 'react';
 import App from './App';
 import LandingPage from './components/LandingPage';
+import PaymentStatusPage from './components/PaymentStatusPage';
 import {
   CalculRevenuAutoEntrepreneurPage,
   CombienCaPour3000NetPage,
   SimulateurRevenuFreelancePage,
 } from './components/seoPages';
 
-type View = 'landing' | 'app' | 'calcul-revenu-auto-entrepreneur' | 'combien-ca-pour-3000-net' | 'simulateur-revenu-freelance';
+type View =
+  | 'landing'
+  | 'app'
+  | 'success'
+  | 'cancel'
+  | 'calcul-revenu-auto-entrepreneur'
+  | 'combien-ca-pour-3000-net'
+  | 'simulateur-revenu-freelance';
 
 function normalizePathname(pathname: string) {
   const normalized = pathname.replace(/\/+$/, '');
@@ -23,6 +31,14 @@ function getCurrentView(): View {
 
   if (pathname === '/calcul-revenu-auto-entrepreneur') {
     return 'calcul-revenu-auto-entrepreneur';
+  }
+
+  if (pathname === '/success') {
+    return 'success';
+  }
+
+  if (pathname === '/cancel') {
+    return 'cancel';
   }
 
   if (pathname === '/combien-ca-pour-3000-net') {
@@ -58,6 +74,14 @@ export default function Root() {
 
   if (view === 'calcul-revenu-auto-entrepreneur') {
     return <CalculRevenuAutoEntrepreneurPage />;
+  }
+
+  if (view === 'success') {
+    return <PaymentStatusPage status="success" />;
+  }
+
+  if (view === 'cancel') {
+    return <PaymentStatusPage status="cancel" />;
   }
 
   if (view === 'combien-ca-pour-3000-net') {

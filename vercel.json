@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    {
+      "source": "/success",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cancel",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/calcul-revenu-auto-entrepreneur",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/combien-ca-pour-3000-net",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/simulateur-revenu-freelance",
+      "destination": "/index.html"
+    }
+  ]
+}
