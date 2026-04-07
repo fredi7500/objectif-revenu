@@ -325,25 +325,6 @@ export async function createCheckoutSession() {
   return payload.url;
 }
 
-export async function activatePremiumForUser(userId: string) {
-  if (!userId || userId === GUEST_USER_ID) {
-    throw new Error('Un compte utilisateur est requis pour activer Premium.');
-  }
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ is_premium: true })
-    .eq('id', userId)
-    .select('id, email, created_at, trial_start_date, is_premium')
-    .single<UserProfileRow>();
-
-  if (error) {
-    throw new Error(error.message || 'Impossible d’activer Premium.');
-  }
-
-  return mapUserProfile(data);
-}
-
 export function isTrialExpired(
   user: Pick<AppUserProfile, 'trialStartDate' | 'isPremium'> | null,
   now = new Date()

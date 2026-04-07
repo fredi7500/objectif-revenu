@@ -3,6 +3,7 @@ import {
   getAuthenticatedUserFromRequest,
   getEnv,
   getStripeClient,
+  getUserProfileById,
 } from './_lib/server';
 
 type ApiRequest = {
@@ -29,14 +30,24 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return res.status(401).json({ error: 'Unauthorized.' });
     }
 
+    const profile = await getUserProfileById(user.id);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found.' });
+    }
+
+    if (profile.is_premium) {
+      return res.status(409).json({ error: 'Premium is already active for this account.' });
+    }
+
     const stripe = getStripeClient();
     const appUrl = getAppUrl();
+    const customerEmail = profile.email || user.email;
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       success_url: `${appUrl}/success`,
       cancel_url: `${appUrl}/cancel`,
-      customer_email: user.email,
+      customer_email: customerEmail,
       line_items: [
         {
           price: getEnv('STRIPE_PRICE_ID'),
@@ -45,12 +56,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       ],
       metadata: {
         supabase_user_id: user.id,
-        email: user.email,
+        email: customerEmail,
       },
       subscription_data: {
         metadata: {
           supabase_user_id: user.id,
-          email: user.email,
+          email: customerEmail,
         },
       },
     });

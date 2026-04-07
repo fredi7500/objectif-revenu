@@ -75,6 +75,28 @@ export async function getAuthenticatedUserFromRequest(req: { headers: Record<str
   };
 }
 
+type UserProfile = {
+  id: string;
+  email: string;
+  is_premium: boolean;
+  trial_start_date: string;
+};
+
+export async function getUserProfileById(userId: string) {
+  const supabaseAdmin = getSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email, is_premium, trial_start_date')
+    .eq('id', userId)
+    .maybeSingle<UserProfile>();
+
+  if (error) {
+    throw new Error(error.message || 'Unable to load Supabase profile.');
+  }
+
+  return data;
+}
+
 export async function readRawBody(req: AsyncIterable<Buffer | string>) {
   const chunks: Buffer[] = [];
 

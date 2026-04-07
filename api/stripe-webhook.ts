@@ -24,6 +24,54 @@ export const config = {
   },
 };
 
+function getMetadataFromStripeObject(object: Stripe.Event.Data.Object['object']) {
+  return 'metadata' in object && object.metadata ? object.metadata : {};
+}
+
+async function activatePremiumForUser(supabaseUserId: string) {
+  const supabaseAdmin = getSupabaseAdminClient();
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update({ is_premium: true })
+    .eq('id', supabaseUserId);
+
+  if (error) {
+    throw new Error(error.message || 'Failed to update profiles.is_premium.');
+  }
+}
+
+async function getSupabaseUserIdFromEvent(
+  stripe: Stripe,
+  event: Stripe.Event
+) {
+  const object = event.data.object;
+  const directMetadata = getMetadataFromStripeObject(object);
+
+  if (directMetadata.supabase_user_id) {
+    return directMetadata.supabase_user_id;
+  }
+
+  if (
+    event.type === 'checkout.session.completed' &&
+    'subscription' in object &&
+    typeof object.subscription === 'string'
+  ) {
+    const subscription = await stripe.subscriptions.retrieve(object.subscription);
+    return subscription.metadata.supabase_user_id ?? null;
+  }
+
+  if (
+    (event.type === 'invoice.paid' || event.type === 'invoice.payment_succeeded') &&
+    'subscription' in object &&
+    typeof object.subscription === 'string'
+  ) {
+    const subscription = await stripe.subscriptions.retrieve(object.subscription);
+    return subscription.metadata.supabase_user_id ?? null;
+  }
+
+  return null;
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -50,33 +98,28 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (
       event.type === 'checkout.session.completed' ||
+      event.type === 'invoice.paid' ||
+      event.type === 'invoice.payment_succeeded' ||
       event.type === 'customer.subscription.created' ||
       event.type === 'customer.subscription.updated'
     ) {
       const object = event.data.object;
-      const metadata =
-        'metadata' in object && object.metadata ? object.metadata : {};
-      const supabaseUserId = metadata.supabase_user_id;
+      const supabaseUserId = await getSupabaseUserIdFromEvent(stripe, event);
+      const checkoutPaid =
+        event.type === 'checkout.session.completed' &&
+        'payment_status' in object &&
+        object.payment_status === 'paid';
       const subscriptionStatus =
         'status' in object && typeof object.status === 'string' ? object.status : null;
+      const shouldActivate =
+        checkoutPaid ||
+        event.type === 'invoice.paid' ||
+        event.type === 'invoice.payment_succeeded' ||
+        subscriptionStatus === 'active' ||
+        subscriptionStatus === 'trialing';
 
-      if (supabaseUserId) {
-        const supabaseAdmin = getSupabaseAdminClient();
-        const shouldActivate =
-          event.type === 'checkout.session.completed' ||
-          subscriptionStatus === 'active' ||
-          subscriptionStatus === 'trialing';
-
-        if (shouldActivate) {
-          const { error } = await supabaseAdmin
-            .from('profiles')
-            .update({ is_premium: true })
-            .eq('id', supabaseUserId);
-
-          if (error) {
-            throw new Error(error.message || 'Failed to update profiles.is_premium.');
-          }
-        }
+      if (supabaseUserId && shouldActivate) {
+        await activatePremiumForUser(supabaseUserId);
       }
     }
 
