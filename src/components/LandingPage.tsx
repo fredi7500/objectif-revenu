@@ -116,42 +116,42 @@ export default function LandingPage() {
           'Calculez combien vous devez encaisser pour atteindre votre revenu mensuel avec Cap Revenu, outil de calcul de revenu pour indépendant, freelance et auto-entrepreneur.',
       }}
     >
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pb-24 lg:pt-10">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
-          <div className="space-y-6">
+      <section className="mx-auto max-w-6xl px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-24 lg:pt-10">
+        <div className="grid items-center gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+          <div className="space-y-4 sm:space-y-5 lg:space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.06)] backdrop-blur"
+              className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1.5 text-[13px] font-medium text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.06)] backdrop-blur sm:px-4 sm:py-2 sm:text-sm"
             >
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
               Outil de calcul de revenu pour indépendants
             </motion.div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <img
                   src="/logo-cashpilot.png"
                   alt="Cap Revenu logo"
-                  className="h-9 w-auto object-contain sm:h-10"
+                  className="h-8 w-auto object-contain sm:h-10"
                 />
                 {/* Replace this asset when the new Cap Revenu logo image is available if the bitmap still shows "Cash Pilot". */}
-                <span className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 sm:text-sm sm:tracking-[0.24em]">
                   Cap Revenu
                 </span>
               </div>
-              <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-3xl text-[2rem] font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
                 Arrêtez de piloter votre revenu à l’aveugle
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+              <p className="max-w-2xl text-[15px] leading-6 text-slate-600 sm:text-lg sm:leading-7">
                 Cap Revenu vous montre combien encaisser et où vous en êtes, en un coup d’œil.
               </p>
-              <p className="max-w-xl text-base leading-7 text-slate-600">
+              <p className="max-w-xl text-[15px] leading-6 text-slate-600 sm:text-base sm:leading-7">
                 Fixez votre objectif, suivez votre progression et sachez exactement ce qu’il vous reste à encaisser.
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3">
               <a
                 href="/#/app"
                 className="inline-flex h-12 items-center justify-center rounded-full bg-slate-950 px-6 text-base font-semibold text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
@@ -167,23 +167,23 @@ export default function LandingPage() {
               </a>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
               <Card className="rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-                <CardContent className="p-5">
-                  <p className="text-sm text-slate-500">Essai gratuit</p>
-                  <p className="mt-2 text-2xl font-bold text-slate-950">10 jours</p>
+                <CardContent className="p-4 sm:p-5">
+                  <p className="text-xs text-slate-500 sm:text-sm">Essai gratuit</p>
+                  <p className="mt-1.5 text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">10 jours</p>
                 </CardContent>
               </Card>
               <Card className="rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-                <CardContent className="p-5">
-                  <p className="text-sm text-slate-500">Abonnement</p>
-                  <p className="mt-2 text-2xl font-bold text-slate-950">5,99€/mois</p>
+                <CardContent className="p-4 sm:p-5">
+                  <p className="text-xs text-slate-500 sm:text-sm">Abonnement</p>
+                  <p className="mt-1.5 text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">5,99€/mois</p>
                 </CardContent>
               </Card>
-              <Card className="rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-                <CardContent className="p-5">
-                  <p className="text-sm text-slate-500">Promesse</p>
-                  <p className="mt-2 text-2xl font-bold text-slate-950">Plus clair</p>
+              <Card className="col-span-2 rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:col-span-1">
+                <CardContent className="p-4 sm:p-5">
+                  <p className="text-xs text-slate-500 sm:text-sm">Promesse</p>
+                  <p className="mt-1.5 text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">Plus clair</p>
                 </CardContent>
               </Card>
             </div>
@@ -193,18 +193,18 @@ export default function LandingPage() {
             initial={{ opacity: 0, scale: 0.98, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="relative"
+            className="relative mx-auto w-full max-w-[320px] sm:max-w-none"
           >
-            <div className="absolute -left-4 top-10 h-28 w-28 rounded-full bg-cyan-200/70 blur-3xl sm:h-36 sm:w-36" />
-            <div className="absolute -right-2 bottom-10 h-32 w-32 rounded-full bg-emerald-200/60 blur-3xl sm:h-40 sm:w-40" />
+            <div className="absolute left-0 top-8 h-20 w-20 rounded-full bg-cyan-200/70 blur-3xl sm:-left-4 sm:top-10 sm:h-36 sm:w-36" />
+            <div className="absolute right-0 bottom-8 h-24 w-24 rounded-full bg-emerald-200/60 blur-3xl sm:-right-2 sm:bottom-10 sm:h-40 sm:w-40" />
             <PhoneMockup className="relative z-10" />
-            <div className="pointer-events-none absolute -left-2 bottom-8 z-20 rounded-[24px] border border-white/10 bg-slate-950/88 p-4 text-white shadow-[0_24px_70px_rgba(2,8,23,0.32)] backdrop-blur sm:-left-6">
+            <div className="pointer-events-none absolute inset-x-4 bottom-5 z-20 rounded-[22px] border border-white/10 bg-slate-950/88 p-3 text-white shadow-[0_24px_70px_rgba(2,8,23,0.32)] backdrop-blur sm:inset-x-auto sm:-left-6 sm:bottom-8 sm:rounded-[24px] sm:p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm text-cyan-200">Objectif de revenu mensuel</p>
-                  <p className="mt-1 text-2xl font-bold">Montant à encaisser clair</p>
+                  <p className="text-xs text-cyan-200 sm:text-sm">Objectif de revenu mensuel</p>
+                  <p className="mt-1 text-lg font-bold leading-tight sm:text-2xl">Montant à encaisser clair</p>
                 </div>
-                <div className="rounded-full bg-emerald-400/20 px-3 py-1 text-sm font-semibold text-emerald-200">
+                <div className="rounded-full bg-emerald-400/20 px-2.5 py-1 text-xs font-semibold text-emerald-200 sm:px-3 sm:text-sm">
                   Actionnable
                 </div>
               </div>
@@ -213,15 +213,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        <div className="grid gap-4 lg:grid-cols-2">
+      <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-12">
+        <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
           <Card className="rounded-[32px] border-0 bg-slate-950 text-white shadow-[0_25px_70px_rgba(15,23,42,0.16)]">
-            <CardContent className="p-7 sm:p-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">Le problème</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight">
+            <CardContent className="p-5 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300 sm:text-sm sm:tracking-[0.18em]">Le problème</p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight sm:mt-3 sm:text-3xl">
                 Quand on travaille en indépendant, le revenu manque souvent de lisibilité.
               </h2>
-              <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
+              <p className="mt-3 max-w-xl text-[15px] leading-6 text-slate-300 sm:mt-4 sm:text-base sm:leading-7">
                 Entre les charges, les statuts et le chiffre d’affaires à encaisser, beaucoup pilotent encore leur
                 activité sans repère clair. Résultat : du stress, des décisions prises trop tard et des fins de mois imprévisibles.
               </p>
@@ -229,12 +229,12 @@ export default function LandingPage() {
           </Card>
 
           <Card className="rounded-[32px] border border-emerald-100 bg-white/90 shadow-[0_25px_70px_rgba(15,23,42,0.08)]">
-            <CardContent className="p-7 sm:p-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">La solution</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
+            <CardContent className="p-5 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600 sm:text-sm sm:tracking-[0.18em]">La solution</p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:mt-3 sm:text-3xl">
                 L’application vous indique quoi viser, quoi suivre et combien il reste.
               </h2>
-              <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
+              <p className="mt-3 max-w-xl text-[15px] leading-6 text-slate-600 sm:mt-4 sm:text-base sm:leading-7">
                 Cap Revenu transforme votre revenu cible en estimation de chiffre d’affaires, suit vos
                 encaissements et vous montre immédiatement ce qu’il reste à atteindre.
               </p>
@@ -243,20 +243,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="fonctionnement" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+      <section id="fonctionnement" className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-16">
         <Card className="overflow-hidden rounded-[36px] border-0 bg-[linear-gradient(135deg,#0f172a_0%,#111f3f_60%,#0b2b2a_100%)] text-white shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
-          <CardContent className="p-7 sm:p-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">Fonctionnement</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight">Trois étapes simples pour piloter votre mois.</h2>
+          <CardContent className="p-5 sm:p-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300 sm:text-sm sm:tracking-[0.18em]">Fonctionnement</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight sm:mt-3 sm:text-3xl">Trois étapes simples pour piloter votre mois.</h2>
 
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
+            <div className="mt-5 grid gap-3 sm:mt-6 md:grid-cols-3 md:gap-5">
               {steps.map((step, index) => (
-                <div key={step.title} className="rounded-[28px] border border-white/10 bg-white/5 p-5 backdrop-blur">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950">
+                <div key={step.title} className="rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur sm:rounded-[28px] sm:p-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950 sm:h-11 sm:w-11">
                     <span className="text-base font-black">{index + 1}</span>
                   </div>
-                  <h3 className="mt-4 text-xl font-bold">{step.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">{step.description}</p>
+                  <h3 className="mt-3 text-lg font-bold sm:mt-4 sm:text-xl">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-300 sm:mt-3">{step.description}</p>
                 </div>
               ))}
             </div>
@@ -264,15 +264,15 @@ export default function LandingPage() {
         </Card>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+      <section className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-16">
         <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Pourquoi c’est différent</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 sm:text-sm sm:tracking-[0.18em]">Pourquoi c’est différent</p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
             Une application pensée pour obtenir un résultat, pas pour vous occuper.
           </h2>
         </div>
 
-        <div className="mt-8 grid gap-5 md:grid-cols-3">
+        <div className="mt-5 grid gap-3 sm:mt-6 md:grid-cols-3 md:gap-5">
           {differentiators.map((item) => {
             const Icon = item.icon;
 
@@ -281,12 +281,12 @@ export default function LandingPage() {
                 key={item.title}
                 className="rounded-[30px] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
               >
-                <CardContent className="p-6">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-cyan-300">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-cyan-300 sm:h-12 sm:w-12">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-5 text-xl font-bold text-slate-950">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
+                  <h3 className="mt-3 text-lg font-bold text-slate-950 sm:mt-5 sm:text-xl">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600 sm:mt-3">{item.description}</p>
                 </CardContent>
               </Card>
             );
@@ -294,24 +294,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+      <section className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-16">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Avis clients</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 sm:text-sm sm:tracking-[0.18em]">Avis clients</p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
             Des indépendants qui pilotent déjà leur revenu plus clairement.
           </h2>
         </div>
 
-        <div className="mt-8 grid gap-5 md:grid-cols-3">
+        <div className="mt-5 grid gap-3 sm:mt-6 md:grid-cols-3 md:gap-5">
           {testimonials.map((testimonial) => (
             <Card
               key={testimonial.name}
               className="rounded-[30px] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
             >
-              <CardContent className="p-6">
-                <div className="text-sm font-semibold tracking-[0.18em] text-amber-500">★★★★★</div>
-                <p className="mt-3 text-base leading-7 text-slate-700">“{testimonial.quote}”</p>
-                <div className="mt-5">
+              <CardContent className="p-4 sm:p-6">
+                <div className="text-xs font-semibold tracking-[0.16em] text-amber-500 sm:text-sm sm:tracking-[0.18em]">★★★★★</div>
+                <p className="mt-2 text-[15px] leading-6 text-slate-700 sm:mt-3 sm:text-base sm:leading-7">“{testimonial.quote}”</p>
+                <div className="mt-4 sm:mt-5">
                   <p className="text-sm font-semibold text-slate-950">{testimonial.name}</p>
                   <p className="text-sm text-slate-500">{testimonial.role}</p>
                 </div>
@@ -321,16 +321,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-        <div className="space-y-5">
+      <section className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8 lg:py-10">
+        <div className="space-y-3 sm:space-y-5">
           {seoSections.map((section) => (
             <Card
               key={section.title}
               className="rounded-[30px] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
             >
-              <CardContent className="p-7 sm:p-8">
-                <h2 className="text-2xl font-bold tracking-tight text-slate-950">{section.title}</h2>
-                <div className="mt-4 space-y-3 text-base leading-7 text-slate-600">
+              <CardContent className="p-5 sm:p-8">
+                <h2 className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">{section.title}</h2>
+                <div className="mt-3 space-y-2.5 text-[15px] leading-6 text-slate-600 sm:mt-4 sm:space-y-3 sm:text-base sm:leading-7">
                   {section.paragraphs.map((paragraph) => (
                     <p key={paragraph}>{paragraph}</p>
                   ))}
@@ -341,68 +341,68 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+      <section className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-16">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">FAQ</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 sm:text-sm sm:tracking-[0.18em]">FAQ</p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
             Questions fréquentes sur le calcul revenu et le chiffre d’affaires
           </h2>
         </div>
 
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
+        <div className="mt-5 grid gap-3 sm:mt-6 md:grid-cols-2 md:gap-5">
           {faqItems.map((item) => (
             <Card
               key={item.question}
               className="rounded-[30px] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
             >
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-slate-950">{item.question}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{item.answer}</p>
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-lg font-bold text-slate-950 sm:text-xl">{item.question}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600 sm:mt-3">{item.answer}</p>
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
 
-      <section id="prix" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+      <section id="prix" className="mx-auto max-w-4xl px-4 py-7 sm:px-6 lg:px-8 lg:py-16">
         <Card className="overflow-hidden rounded-[36px] border border-emerald-100 bg-white/92 shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
-          <CardContent className="grid gap-8 p-7 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <CardContent className="grid gap-5 p-5 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-8">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">Prix</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600 sm:text-sm sm:tracking-[0.18em]">Prix</p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:mt-3 sm:text-3xl">
                 Testez gratuitement, puis restez sur une formule simple.
               </h2>
-              <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
+              <p className="mt-3 max-w-xl text-[15px] leading-6 text-slate-600 sm:mt-4 sm:text-base sm:leading-7">
                 10 jours gratuits pour essayer l’application. Ensuite, 5,99€/mois pour continuer à piloter votre
                 revenu avec un outil clair, utile et sans friction.
               </p>
             </div>
 
-            <div className="rounded-[28px] bg-slate-950 p-6 text-white shadow-[0_25px_70px_rgba(15,23,42,0.18)]">
+            <div className="rounded-[24px] bg-slate-950 p-5 text-white shadow-[0_25px_70px_rgba(15,23,42,0.18)] sm:rounded-[28px] sm:p-6">
               <div className="flex items-center gap-3 text-cyan-300">
                 <Clock3 className="h-5 w-5" />
                 <span className="text-sm font-semibold">10 jours gratuits</span>
               </div>
-              <p className="mt-5 text-5xl font-black tracking-tight">5,99€</p>
-              <p className="mt-2 text-sm text-slate-300">par mois, sans complexité</p>
+              <p className="mt-4 text-4xl font-black tracking-tight sm:mt-5 sm:text-5xl">5,99€</p>
+              <p className="mt-1.5 text-sm text-slate-300 sm:mt-2">par mois, sans complexité</p>
             </div>
           </CardContent>
         </Card>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pb-24">
+      <section className="mx-auto max-w-5xl px-4 pb-12 pt-4 sm:px-6 lg:px-8 lg:pb-24">
         <Card className="overflow-hidden rounded-[38px] border-0 bg-[linear-gradient(135deg,#082f49_0%,#0f172a_55%,#14532d_100%)] text-white shadow-[0_35px_100px_rgba(15,23,42,0.22)]">
-          <CardContent className="p-7 text-center sm:p-10">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-cyan-300 backdrop-blur">
+          <CardContent className="p-5 text-center sm:p-10">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-cyan-300 backdrop-blur sm:h-14 sm:w-14">
               <Rocket className="h-6 w-6" />
             </div>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="mt-4 text-2xl font-bold tracking-tight sm:mt-5 sm:text-4xl">
               Sachez enfin combien encaisser pour atteindre votre revenu, chaque mois.
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-200">
+            <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-6 text-slate-200 sm:mt-4 sm:text-base sm:leading-7">
               Commencez gratuitement, fixez votre objectif et pilotez votre revenu avec une estimation claire du chiffre d’affaires à atteindre.
             </p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <div className="mt-5 flex flex-col justify-center gap-3 sm:mt-8 sm:flex-row">
               <a
                 href="/#/app"
                 className="inline-flex h-12 items-center justify-center rounded-full bg-white px-6 text-base font-semibold text-slate-950 transition hover:bg-slate-100"
