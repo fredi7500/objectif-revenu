@@ -157,13 +157,18 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3">
-              <a
-                href="/#/app"
-                className="inline-flex h-12 items-center justify-center rounded-full bg-slate-950 px-6 text-base font-semibold text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
-              >
-                Essayer gratuitement
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              <div className="flex flex-col items-center sm:items-start">
+                <a
+                  href="/#/app"
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-slate-950 px-6 text-base font-semibold text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
+                >
+                  Essayer gratuitement
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+                <p className="text-xs text-white/60 mt-2 text-center">
+                  Sans engagement
+                </p>
+              </div>
               <a
                 href="#fonctionnement"
                 className="inline-flex h-12 items-center justify-center rounded-full border border-slate-200 bg-white px-6 text-base font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:text-slate-950"
@@ -173,22 +178,25 @@ export default function LandingPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
-              <Card className="rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-                <CardContent className="p-4 sm:p-5">
+              <Card className="h-full rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                <CardContent className="flex h-full flex-col p-4 sm:p-5">
                   <p className="text-xs text-slate-500 sm:text-sm">Essai gratuit</p>
                   <p className="mt-1.5 text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">10 jours</p>
                 </CardContent>
               </Card>
-              <Card className="rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-                <CardContent className="p-4 sm:p-5">
+              <Card className="h-full rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                <CardContent className="flex h-full flex-col p-4 sm:p-5">
                   <p className="text-xs text-slate-500 sm:text-sm">Abonnement</p>
                   <p className="mt-1.5 text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">5,99€/mois</p>
                 </CardContent>
               </Card>
-              <Card className="col-span-2 rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:col-span-1">
-                <CardContent className="p-4 sm:p-5">
-                  <p className="text-xs text-slate-500 sm:text-sm">Promesse</p>
-                  <p className="mt-1.5 text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">Plus clair</p>
+              <Card className="col-span-2 h-full rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:col-span-1">
+                <CardContent className="flex h-full flex-col p-4 sm:p-5">
+                  <p className="text-xs text-slate-500 sm:text-sm">Réassurance</p>
+                  <p className="mt-1.5 text-lg font-semibold leading-tight text-slate-950 sm:mt-2 sm:text-xl">
+                    Sans engagement
+                  </p>
+                  <p className="mt-1.5 text-xs text-slate-500 sm:text-sm">Annulable à tout moment</p>
                 </CardContent>
               </Card>
             </div>
