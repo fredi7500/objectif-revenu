@@ -1,36 +1,64 @@
 import { useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 import ObjectifRevenuApp from './components/ObjectifRevenuApp';
 import {
   GUEST_USER_ID,
-  getOrCreateCurrentUserProfile,
-  getStoredSession,
+  getOrCreateUserProfile,
   type AppUserProfile,
   migrateGuestAppStateToUser,
   signOut,
-  subscribeToAuthChanges,
-  type AuthSession,
 } from './lib/auth';
+import { supabase } from './lib/supabase';
 
 function App() {
-  const [session, setSession] = useState<AuthSession | null>(() => getStoredSession());
+  const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<AppUserProfile | null>(null);
 
-  useEffect(() => subscribeToAuthChanges(setSession), []);
   useEffect(() => {
-    if (!session?.userId) return;
-    migrateGuestAppStateToUser(session.userId);
-  }, [session?.userId]);
+    let cancelled = false;
+
+    async function syncSession() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!cancelled) {
+        setUser(session?.user ?? null);
+      }
+    }
+
+    void syncSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!cancelled) {
+        setUser(session?.user ?? null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    migrateGuestAppStateToUser(user.id);
+  }, [user?.id]);
+
   useEffect(() => {
     let cancelled = false;
 
     async function syncUserProfile() {
-      if (!session?.userId) {
+      if (!user?.id || !user.email) {
         setUserProfile(null);
         return;
       }
 
       try {
-        const profile = await getOrCreateCurrentUserProfile();
+        const profile = await getOrCreateUserProfile(user.id, user.email);
         if (!cancelled) {
           setUserProfile(profile);
         }
@@ -47,17 +75,17 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [session?.userId]);
+  }, [user?.email, user?.id]);
 
   return (
     <ObjectifRevenuApp
-      userId={session?.userId ?? GUEST_USER_ID}
-      userEmail={session?.email ?? 'Mode invité'}
+      userId={user?.id ?? GUEST_USER_ID}
+      userEmail={user?.email?.trim().toLowerCase() ?? 'Mode invité'}
       userProfile={userProfile}
-      isAuthenticated={Boolean(session)}
+      isAuthenticated={Boolean(user)}
       onSignOut={() => {
         signOut();
-        setSession(null);
+        setUser(null);
         setUserProfile(null);
       }}
     />
