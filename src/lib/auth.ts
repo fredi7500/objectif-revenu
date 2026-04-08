@@ -180,7 +180,7 @@ export async function sendMagicLink(email: string) {
     email: normalizedEmail,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: 'https://objectif-revenu.vercel.app/app',
+      emailRedirectTo: 'https://caprevenu.com/#/app',
     },
   });
 
