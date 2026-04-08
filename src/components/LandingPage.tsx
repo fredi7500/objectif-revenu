@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
+  ChevronDown,
   Clock3,
   Eye,
   Gauge,
@@ -107,6 +109,9 @@ const faqItems = [
 ];
 
 export default function LandingPage() {
+  const [openSeoSection, setOpenSeoSection] = useState(0);
+  const [openFaqItem, setOpenFaqItem] = useState<number | null>(null);
+
   return (
     <MarketingLayout
       metadata={{
@@ -323,21 +328,44 @@ export default function LandingPage() {
 
       <section className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8 lg:py-10">
         <div className="space-y-3 sm:space-y-5">
-          {seoSections.map((section) => (
-            <Card
-              key={section.title}
-              className="rounded-[30px] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
-            >
-              <CardContent className="p-5 sm:p-8">
-                <h2 className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">{section.title}</h2>
-                <div className="mt-3 space-y-2.5 text-[15px] leading-6 text-slate-600 sm:mt-4 sm:space-y-3 sm:text-base sm:leading-7">
-                  {section.paragraphs.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {seoSections.map((section, index) => {
+            const isOpen = openSeoSection === index;
+
+            return (
+              <Card
+                key={section.title}
+                className="rounded-[30px] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
+              >
+                <CardContent className="p-4 sm:p-8">
+                  <button
+                    type="button"
+                    onClick={() => setOpenSeoSection(isOpen ? -1 : index)}
+                    className="flex w-full items-center justify-between gap-4 rounded-[20px] py-1 text-left sm:cursor-default sm:py-0"
+                    aria-expanded={isOpen}
+                  >
+                    <h2 className="pr-2 text-lg font-bold tracking-tight text-slate-950 sm:text-2xl">{section.title}</h2>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-transform duration-300 sm:hidden">
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                    </span>
+                  </button>
+
+                  <div
+                    className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out sm:mt-4 sm:grid-rows-[1fr] sm:opacity-100 ${
+                      isOpen ? 'mt-3 grid-rows-[1fr] opacity-100' : 'mt-0 grid-rows-[0fr] opacity-0 sm:mt-4'
+                    }`}
+                  >
+                    <div className="min-h-0">
+                      <div className="space-y-2.5 text-[15px] leading-6 text-slate-600 sm:space-y-3 sm:text-base sm:leading-7">
+                        {section.paragraphs.map((paragraph) => (
+                          <p key={paragraph}>{paragraph}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </section>
 
@@ -350,17 +378,40 @@ export default function LandingPage() {
         </div>
 
         <div className="mt-5 grid gap-3 sm:mt-6 md:grid-cols-2 md:gap-5">
-          {faqItems.map((item) => (
-            <Card
-              key={item.question}
-              className="rounded-[30px] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
-            >
-              <CardContent className="p-4 sm:p-6">
-                <h3 className="text-lg font-bold text-slate-950 sm:text-xl">{item.question}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600 sm:mt-3">{item.answer}</p>
-              </CardContent>
-            </Card>
-          ))}
+          {faqItems.map((item, index) => {
+            const isOpen = openFaqItem === index;
+
+            return (
+              <Card
+                key={item.question}
+                className="rounded-[30px] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
+              >
+                <CardContent className="p-4 sm:p-6">
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaqItem(isOpen ? null : index)}
+                    className="flex w-full items-center justify-between gap-4 rounded-[20px] py-1 text-left sm:cursor-default sm:py-0"
+                    aria-expanded={isOpen}
+                  >
+                    <h3 className="pr-2 text-lg font-bold text-slate-950 sm:text-xl">{item.question}</h3>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-transform duration-300 sm:hidden">
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                    </span>
+                  </button>
+
+                  <div
+                    className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out sm:mt-3 sm:grid-rows-[1fr] sm:opacity-100 ${
+                      isOpen ? 'mt-2 grid-rows-[1fr] opacity-100' : 'mt-0 grid-rows-[0fr] opacity-0 sm:mt-3'
+                    }`}
+                  >
+                    <div className="min-h-0">
+                      <p className="text-sm leading-6 text-slate-600">{item.answer}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </section>
 
