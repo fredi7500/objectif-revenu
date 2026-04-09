@@ -5,7 +5,7 @@ const relatedLinks = [
   { href: '/calcul-revenu-auto-entrepreneur', label: 'Calcul revenu auto-entrepreneur' },
   { href: '/combien-ca-pour-3000-net', label: 'Combien de chiffre d’affaires pour 3000€ net ?' },
   { href: '/simulateur-revenu-freelance', label: 'Simulateur revenu freelance' },
-  { href: '/#/app', label: 'Accéder au simulateur' },
+  { href: '/app', label: 'Accéder au simulateur' },
 ];
 
 export function CalculRevenuAutoEntrepreneurPage() {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import ObjectifRevenuApp from './components/ObjectifRevenuApp';
+import AuthScreen from './components/AuthScreen';
 import {
   GUEST_USER_ID,
   getOrCreateUserProfile,
@@ -8,6 +9,7 @@ import {
   migrateGuestAppStateToUser,
   signOut,
 } from './lib/auth';
+import { buildAppUrl, clearGuestModeInUrl, isGuestModeEnabledFromLocation, replaceLocation } from './lib/navigation';
 import { supabase } from './lib/supabase';
 
 const AUTH_DEBUG_PREFIX = '[supabase-magic-link]';
@@ -15,11 +17,19 @@ const AUTH_DEBUG_PREFIX = '[supabase-magic-link]';
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<AppUserProfile | null>(null);
+  const [guestMode, setGuestMode] = useState<boolean>(() => isGuestModeEnabledFromLocation(window.location));
 
   useEffect(() => {
     let cancelled = false;
 
     async function syncSession() {
+      console.info(`${AUTH_DEBUG_PREFIX} arrival route`, {
+        href: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hash: window.location.hash,
+      });
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -57,6 +67,25 @@ function App() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const syncGuestMode = () => {
+      setGuestMode(isGuestModeEnabledFromLocation(window.location));
+    };
+
+    window.addEventListener('popstate', syncGuestMode);
+
+    return () => {
+      window.removeEventListener('popstate', syncGuestMode);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    clearGuestModeInUrl();
+    setGuestMode(false);
+  }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -101,6 +130,17 @@ function App() {
       cancelled = true;
     };
   }, [user?.email, user?.id]);
+
+  if (!user && !guestMode) {
+    return (
+      <AuthScreen
+        onContinueAsGuest={() => {
+          replaceLocation(buildAppUrl({ guest: true }));
+          setGuestMode(true);
+        }}
+      />
+    );
+  }
 
   return (
     <ObjectifRevenuApp

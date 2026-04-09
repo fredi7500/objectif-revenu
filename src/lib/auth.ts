@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
+import { buildAppUrl } from '@/lib/navigation';
 import { supabase } from '@/lib/supabase';
 
 export type AuthSession = {
@@ -50,7 +51,7 @@ function resolveMagicLinkRedirectUrl() {
   }
 
   if (typeof window !== 'undefined' && window.location.origin) {
-    return `${window.location.origin}/#/app`;
+    return `${window.location.origin}${buildAppUrl()}`;
   }
 
   return 'http://localhost:3000/app';
@@ -142,6 +143,13 @@ function persistSession(session: AuthSession | null) {
 }
 
 async function syncSessionFromSupabase() {
+  console.info(`${AUTH_DEBUG_PREFIX} auth sync route`, {
+    href: window.location.href,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+  });
+
   const {
     data: { session },
   } = await supabase.auth.getSession();

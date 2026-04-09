@@ -159,7 +159,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3">
               <div className="flex flex-col items-center sm:items-start">
                 <a
-                  href="/#/app"
+                  href="/app"
                   className="inline-flex h-12 items-center justify-center rounded-full bg-slate-950 px-6 text-base font-semibold text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
                 >
                   Essayer gratuitement
@@ -463,7 +463,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-5 flex flex-col justify-center gap-3 sm:mt-8 sm:flex-row">
               <a
-                href="/#/app"
+                href="/app"
                 className="inline-flex h-12 items-center justify-center rounded-full bg-white px-6 text-base font-semibold text-slate-950 transition hover:bg-slate-100"
               >
                 Essayer gratuitement

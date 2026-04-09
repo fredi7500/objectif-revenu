@@ -41,7 +41,7 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
             Tarifs
           </a>
           <a
-            href="/#/app"
+            href="/app"
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-2 text-sm font-medium text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
           >
             Essayer gratuitement
@@ -69,7 +69,7 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
               {link.label}
             </a>
           ))}
-          <a href="/#/app" className="transition hover:text-slate-950">
+          <a href="/app" className="transition hover:text-slate-950">
             Simulateur
           </a>
         </div>

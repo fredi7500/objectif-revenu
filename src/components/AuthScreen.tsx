@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { sendMagicLink } from '@/lib/auth';
 
-export default function AuthScreen() {
+type AuthScreenProps = {
+  onContinueAsGuest?: () => void;
+};
+
+export default function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -97,6 +101,17 @@ export default function AuthScreen() {
                 >
                   {submitting ? 'Envoi en cours...' : 'Recevoir mon lien'}
                 </Button>
+
+                {onContinueAsGuest ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 w-full rounded-[22px] border border-cyan-400/20 bg-slate-950/60 text-base font-medium text-slate-200 hover:bg-slate-900 hover:text-white"
+                    onClick={onContinueAsGuest}
+                  >
+                    Continuer en invité
+                  </Button>
+                ) : null}
               </form>
 
               <div className="rounded-[24px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(16,24,61,0.95)_0%,rgba(7,11,30,0.98)_100%)] p-4 text-sm text-slate-300">

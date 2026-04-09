@@ -60,7 +60,7 @@ export default function PaymentStatusPage({ status }: PaymentStatusPageProps) {
                 type="button"
                 className="h-12 w-full rounded-[22px] border border-emerald-300/35 bg-[linear-gradient(180deg,rgba(34,197,94,0.95)_0%,rgba(16,185,129,0.95)_100%)] text-base font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,0.35)] hover:brightness-110"
                 onClick={() => {
-                  window.location.assign('/#/app');
+                  window.location.assign('/app');
                 }}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />

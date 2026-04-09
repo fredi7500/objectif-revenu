@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import App from './App';
 import LandingPage from './components/LandingPage';
 import PaymentStatusPage from './components/PaymentStatusPage';
+import { isAppPath } from './lib/navigation';
 import {
   CalculRevenuAutoEntrepreneurPage,
   CombienCaPour3000NetPage,
@@ -23,11 +24,11 @@ function normalizePathname(pathname: string) {
 }
 
 function getCurrentView(): View {
-  if (window.location.hash.startsWith('#/app')) {
+  const pathname = normalizePathname(window.location.pathname);
+
+  if (isAppPath(pathname)) {
     return 'app';
   }
-
-  const pathname = normalizePathname(window.location.pathname);
 
   if (pathname === '/calcul-revenu-auto-entrepreneur') {
     return 'calcul-revenu-auto-entrepreneur';
@@ -60,10 +61,8 @@ export default function Root() {
       setView(getCurrentView());
     };
 
-    window.addEventListener('hashchange', syncView);
     window.addEventListener('popstate', syncView);
     return () => {
-      window.removeEventListener('hashchange', syncView);
       window.removeEventListener('popstate', syncView);
     };
   }, []);
