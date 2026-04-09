@@ -46,14 +46,14 @@ function resolveMagicLinkRedirectUrl() {
   const configuredAppUrl = import.meta.env.VITE_APP_URL?.trim();
 
   if (configuredAppUrl) {
-    return `${configuredAppUrl.replace(/\/+$/, '')}/#/app`;
+    return `${configuredAppUrl.replace(/\/+$/, '')}/app`;
   }
 
   if (typeof window !== 'undefined' && window.location.origin) {
     return `${window.location.origin}/#/app`;
   }
 
-  return 'http://localhost:3000/#/app';
+  return 'http://localhost:3000/app';
 }
 
 function mapUserProfile(row: UserProfileRow): AppUserProfile {
