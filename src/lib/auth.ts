@@ -33,11 +33,27 @@ type PersistedEntry = { id?: string };
 const SESSION_KEY = 'objectif-revenu-auth-session-v1';
 const APP_STORAGE_PREFIX = 'objectif-revenu-app-v3';
 const AUTH_EVENT = 'objectif-revenu-auth-change';
+const AUTH_DEBUG_PREFIX = '[supabase-magic-link]';
+const PROFILE_DEBUG_PREFIX = '[supabase-profile]';
 
 export const GUEST_USER_ID = 'guest';
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function resolveMagicLinkRedirectUrl() {
+  const configuredAppUrl = import.meta.env.VITE_APP_URL?.trim();
+
+  if (configuredAppUrl) {
+    return `${configuredAppUrl.replace(/\/+$/, '')}/#/app`;
+  }
+
+  if (typeof window !== 'undefined' && window.location.origin) {
+    return `${window.location.origin}/#/app`;
+  }
+
+  return 'http://localhost:3000/#/app';
 }
 
 function mapUserProfile(row: UserProfileRow): AppUserProfile {
@@ -130,6 +146,12 @@ async function syncSessionFromSupabase() {
     data: { session },
   } = await supabase.auth.getSession();
 
+  console.info(`${AUTH_DEBUG_PREFIX} getSession() in auth sync`, {
+    hasSession: Boolean(session),
+    session,
+    user: session?.user ?? null,
+  });
+
   const nextSession = buildSession(session);
   persistSession(nextSession);
   return nextSession;
@@ -155,6 +177,12 @@ export function subscribeToAuthChanges(callback: (session: AuthSession | null) =
   const {
     data: { subscription },
   } = supabase.auth.onAuthStateChange((_event, session) => {
+    console.info(`${AUTH_DEBUG_PREFIX} onAuthStateChange in auth store`, {
+      event: _event,
+      hasSession: Boolean(session),
+      session,
+      user: session?.user ?? null,
+    });
     persistSession(buildSession(session));
   });
 
@@ -176,12 +204,25 @@ export async function sendMagicLink(email: string) {
     throw new Error('L’email est requis.');
   }
 
-  const { error } = await supabase.auth.signInWithOtp({
+  const emailRedirectTo = resolveMagicLinkRedirectUrl();
+  console.info(`${AUTH_DEBUG_PREFIX} sendMagicLink redirect`, {
+    email: normalizedEmail,
+    emailRedirectTo,
+  });
+
+  const { data, error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: 'https://caprevenu.com/#/app',
+      emailRedirectTo,
     },
+  });
+
+  console.info(`${AUTH_DEBUG_PREFIX} signInWithOtp result`, {
+    email: normalizedEmail,
+    emailRedirectTo,
+    data,
+    error,
   });
 
   if (error) {
@@ -204,6 +245,10 @@ export async function getUserProfile(userId: string) {
     .maybeSingle<UserProfileRow>();
 
   if (error) {
+    console.error(`${PROFILE_DEBUG_PREFIX} read failed`, {
+      userId,
+      error,
+    });
     throw new Error(error.message || 'Impossible de charger le profil utilisateur.');
   }
 
@@ -214,41 +259,66 @@ export async function getOrCreateUserProfile(userId: string, email: string) {
   if (!userId || userId === GUEST_USER_ID) return null;
 
   const normalizedEmail = normalizeEmail(email);
-  const existingProfile = await getUserProfile(userId);
+  const { data: existingRow, error: readError } = await supabase
+    .from('profiles')
+    .select('id, email, created_at, trial_start_date, is_premium')
+    .eq('id', userId)
+    .maybeSingle<UserProfileRow>();
 
-  if (existingProfile) {
-    if (existingProfile.email !== normalizedEmail) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ email: normalizedEmail })
-        .eq('id', userId)
-        .select('id, email, created_at, trial_start_date, is_premium')
-        .single<UserProfileRow>();
-
-      if (error) {
-        throw new Error(error.message || 'Impossible de mettre à jour le profil utilisateur.');
-      }
-
-      return mapUserProfile(data);
-    }
-
-    return existingProfile;
+  if (readError) {
+    console.error(`${PROFILE_DEBUG_PREFIX} read before upsert failed`, {
+      userId,
+      email: normalizedEmail,
+      error: readError,
+    });
+    throw new Error(readError.message || 'Impossible de charger le profil utilisateur.');
   }
+
+  const existingProfile = existingRow ? mapUserProfile(existingRow) : null;
+  const trialStartDate = existingProfile?.trialStartDate ?? new Date().toISOString();
+  const isPremium = existingProfile?.isPremium ?? false;
 
   const { data, error } = await supabase
     .from('profiles')
-    .insert({
-      id: userId,
-      email: normalizedEmail,
-      trial_start_date: new Date().toISOString(),
-      is_premium: false,
-    })
+    .upsert(
+      {
+        id: userId,
+        email: normalizedEmail,
+        trial_start_date: trialStartDate,
+        is_premium: isPremium,
+      },
+      { onConflict: 'id' }
+    )
     .select('id, email, created_at, trial_start_date, is_premium')
     .single<UserProfileRow>();
 
   if (error) {
-    throw new Error(error.message || 'Impossible de créer le profil utilisateur.');
+    console.error(`${PROFILE_DEBUG_PREFIX} upsert failed`, {
+      userId,
+      email: normalizedEmail,
+      existingProfile,
+      error,
+    });
+    throw new Error(error.message || 'Impossible de créer ou mettre à jour le profil utilisateur.');
   }
+
+  if (!data) {
+    console.error(`${PROFILE_DEBUG_PREFIX} upsert returned no row`, {
+      userId,
+      email: normalizedEmail,
+      existingProfile,
+    });
+    throw new Error('Le profil utilisateur n’a pas été renvoyé après mise à jour.');
+  }
+
+  console.info(`${PROFILE_DEBUG_PREFIX} upsert success`, {
+    userId,
+    email: normalizedEmail,
+    created: !existingProfile,
+    preservedTrialStartDate: Boolean(existingProfile?.trialStartDate),
+    preservedIsPremium: typeof existingProfile?.isPremium === 'boolean',
+    profile: data,
+  });
 
   return mapUserProfile(data);
 }

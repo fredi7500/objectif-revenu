@@ -41,6 +41,7 @@ import {
 
 import AccountPromptDialog from '@/components/AccountPromptDialog';
 import {
+  GUEST_USER_ID,
   getAppStorageKey,
   isTrialExpired as isUserTrialExpired,
   type AppUserProfile,
@@ -844,7 +845,7 @@ export default function ObjectifRevenuApp({
   };
 
   const redirectToCheckout = async () => {
-    if (!isAuthenticated || !userProfile?.id) {
+    if (!isAuthenticated || userId === GUEST_USER_ID) {
       setAccountPromptReason('manual-signin');
       setShowAccountPrompt(true);
       return;

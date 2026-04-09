@@ -10,6 +10,8 @@ import {
 } from './lib/auth';
 import { supabase } from './lib/supabase';
 
+const AUTH_DEBUG_PREFIX = '[supabase-magic-link]';
+
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<AppUserProfile | null>(null);
@@ -22,6 +24,12 @@ function App() {
         data: { session },
       } = await supabase.auth.getSession();
 
+      console.info(`${AUTH_DEBUG_PREFIX} getSession() on app load`, {
+        hasSession: Boolean(session),
+        session,
+        user: session?.user ?? null,
+      });
+
       if (!cancelled) {
         setUser(session?.user ?? null);
       }
@@ -32,6 +40,13 @@ function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.info(`${AUTH_DEBUG_PREFIX} onAuthStateChange in App`, {
+        event: _event,
+        hasSession: Boolean(session),
+        session,
+        user: session?.user ?? null,
+      });
+
       if (!cancelled) {
         setUser(session?.user ?? null);
       }
@@ -59,11 +74,21 @@ function App() {
 
       try {
         const profile = await getOrCreateUserProfile(user.id, user.email);
+        console.info('[supabase-profile] sync success in App', {
+          userId: user.id,
+          email: user.email,
+          hasProfile: Boolean(profile),
+          profile,
+        });
         if (!cancelled) {
           setUserProfile(profile);
         }
       } catch (error) {
-        console.error('Erreur profil utilisateur:', error);
+        console.error('[supabase-profile] sync failed in App', {
+          userId: user.id,
+          email: user.email,
+          error,
+        });
         if (!cancelled) {
           setUserProfile(null);
         }
