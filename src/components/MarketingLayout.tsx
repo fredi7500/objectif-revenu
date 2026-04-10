@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { applyPageMetadata, type PageMetadata } from '@/lib/seo';
+import { buildAppUrl } from '@/lib/navigation';
 
 type MarketingLayoutProps = {
   metadata: PageMetadata;
@@ -17,6 +18,8 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
   useEffect(() => {
     applyPageMetadata(metadata);
   }, [metadata]);
+
+  const appEntryUrl = buildAppUrl({ guest: true });
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f4f9ff_0%,#edf4ff_30%,#eef8f3_100%)] text-slate-950">
@@ -41,7 +44,7 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
             Tarifs
           </a>
           <a
-            href="/app"
+            href={appEntryUrl}
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-2 text-sm font-medium text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
           >
             Essayer gratuitement
@@ -69,7 +72,7 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
               {link.label}
             </a>
           ))}
-          <a href="/app" className="transition hover:text-slate-950">
+          <a href={appEntryUrl} className="transition hover:text-slate-950">
             Simulateur
           </a>
         </div>

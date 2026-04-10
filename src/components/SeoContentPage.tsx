@@ -2,6 +2,7 @@ import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import MarketingLayout from '@/components/MarketingLayout';
 import type { PageMetadata } from '@/lib/seo';
+import { buildAppUrl } from '@/lib/navigation';
 
 type Section = {
   title: string;
@@ -30,6 +31,8 @@ export default function SeoContentPage({
   sections,
   relatedLinks,
 }: SeoContentPageProps) {
+  const appEntryUrl = buildAppUrl({ guest: true });
+
   return (
     <MarketingLayout metadata={metadata}>
       <section className="mx-auto max-w-5xl px-4 pb-12 pt-6 sm:px-6 lg:px-8 lg:pb-16 lg:pt-10">
@@ -48,7 +51,7 @@ export default function SeoContentPage({
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <a
-              href="/app"
+              href={appEntryUrl}
               className="inline-flex h-12 items-center justify-center rounded-full bg-slate-950 px-6 text-base font-semibold text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
             >
               Lancer le simulateur
