@@ -19,6 +19,14 @@ type UserProfileRow = {
   created_at: string;
   trial_start_date: string;
   is_premium: boolean;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: string | null;
+  cancel_at_period_end: boolean;
+  current_period_end: string | null;
+  access_until: string | null;
+  plan: string | null;
+  canceled_at: string | null;
 };
 
 export type AppUserProfile = {
@@ -27,6 +35,22 @@ export type AppUserProfile = {
   createdAt: string;
   trialStartDate: string;
   isPremium: boolean;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  subscriptionStatus: string | null;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string | null;
+  accessUntil: string | null;
+  plan: string | null;
+  canceledAt: string | null;
+};
+
+type CancelSubscriptionResponse = {
+  profile: AppUserProfile;
+  subscriptionStatus: string | null;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string | null;
+  accessUntil: string | null;
 };
 
 type PersistedEntry = { id?: string };
@@ -64,6 +88,14 @@ function mapUserProfile(row: UserProfileRow): AppUserProfile {
     createdAt: row.created_at,
     trialStartDate: row.trial_start_date,
     isPremium: Boolean(row.is_premium),
+    stripeCustomerId: row.stripe_customer_id,
+    stripeSubscriptionId: row.stripe_subscription_id,
+    subscriptionStatus: row.subscription_status,
+    cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
+    currentPeriodEnd: row.current_period_end,
+    accessUntil: row.access_until,
+    plan: row.plan,
+    canceledAt: row.canceled_at,
   };
 }
 
@@ -248,7 +280,7 @@ export async function getUserProfile(userId: string) {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, created_at, trial_start_date, is_premium')
+    .select('id, email, created_at, trial_start_date, is_premium, stripe_customer_id, stripe_subscription_id, subscription_status, cancel_at_period_end, current_period_end, access_until, plan, canceled_at')
     .eq('id', userId)
     .maybeSingle<UserProfileRow>();
 
@@ -269,7 +301,7 @@ export async function getOrCreateUserProfile(userId: string, email: string) {
   const normalizedEmail = normalizeEmail(email);
   const { data: existingRow, error: readError } = await supabase
     .from('profiles')
-    .select('id, email, created_at, trial_start_date, is_premium')
+    .select('id, email, created_at, trial_start_date, is_premium, stripe_customer_id, stripe_subscription_id, subscription_status, cancel_at_period_end, current_period_end, access_until, plan, canceled_at')
     .eq('id', userId)
     .maybeSingle<UserProfileRow>();
 
@@ -294,10 +326,18 @@ export async function getOrCreateUserProfile(userId: string, email: string) {
         email: normalizedEmail,
         trial_start_date: trialStartDate,
         is_premium: isPremium,
+        stripe_customer_id: existingProfile?.stripeCustomerId ?? null,
+        stripe_subscription_id: existingProfile?.stripeSubscriptionId ?? null,
+        subscription_status: existingProfile?.subscriptionStatus ?? null,
+        cancel_at_period_end: existingProfile?.cancelAtPeriodEnd ?? false,
+        current_period_end: existingProfile?.currentPeriodEnd ?? null,
+        access_until: existingProfile?.accessUntil ?? null,
+        plan: existingProfile?.plan ?? null,
+        canceled_at: existingProfile?.canceledAt ?? null,
       },
       { onConflict: 'id' }
     )
-    .select('id, email, created_at, trial_start_date, is_premium')
+    .select('id, email, created_at, trial_start_date, is_premium, stripe_customer_id, stripe_subscription_id, subscription_status, cancel_at_period_end, current_period_end, access_until, plan, canceled_at')
     .single<UserProfileRow>();
 
   if (error) {
@@ -401,6 +441,36 @@ export async function createCheckoutSession() {
   }
 
   return payload.url;
+}
+
+export async function cancelSubscriptionAtPeriodEnd() {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    throw new Error('Vous devez être connecté pour continuer.');
+  }
+
+  const response = await fetch('/api/cancel-subscription', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      payload && typeof payload.error === 'string'
+        ? payload.error
+        : 'Impossible de programmer la résiliation.';
+    throw new Error(message);
+  }
+
+  if (!payload || typeof payload !== 'object' || !('profile' in payload) || !payload.profile) {
+    throw new Error('La réponse de résiliation est invalide.');
+  }
+
+  return payload as CancelSubscriptionResponse;
 }
 
 export function isTrialExpired(

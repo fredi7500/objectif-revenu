@@ -1,9 +1,13 @@
 import Stripe from 'stripe';
 import {
-  getSupabaseAdminClient,
   getStripeClient,
   readRawBody,
 } from './_lib/server';
+import {
+  getProfileByStripeCustomerId,
+  getProfileByStripeSubscriptionId,
+  syncProfileSubscriptionFromStripeSubscription,
+} from './_lib/subscriptions';
 
 type ApiRequest = AsyncIterable<Buffer | string> & {
   method?: string;
@@ -26,18 +30,6 @@ export const config = {
 
 function getMetadataFromStripeObject(object: Stripe.Event.Data.Object['object']) {
   return 'metadata' in object && object.metadata ? object.metadata : {};
-}
-
-async function activatePremiumForUser(supabaseUserId: string) {
-  const supabaseAdmin = getSupabaseAdminClient();
-  const { error } = await supabaseAdmin
-    .from('profiles')
-    .update({ is_premium: true })
-    .eq('id', supabaseUserId);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to update profiles.is_premium.');
-  }
 }
 
 async function getSupabaseUserIdFromEvent(
@@ -69,6 +61,20 @@ async function getSupabaseUserIdFromEvent(
     return subscription.metadata.supabase_user_id ?? null;
   }
 
+  if ('subscription' in object && typeof object.subscription === 'string') {
+    const profile = await getProfileByStripeSubscriptionId(object.subscription);
+    if (profile?.id) {
+      return profile.id;
+    }
+  }
+
+  if ('customer' in object && typeof object.customer === 'string') {
+    const profile = await getProfileByStripeCustomerId(object.customer);
+    if (profile?.id) {
+      return profile.id;
+    }
+  }
+
   return null;
 }
 
@@ -96,31 +102,47 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
 
+    if (event.type === 'checkout.session.completed') {
+      const object = event.data.object;
+      if (
+        'subscription' in object &&
+        typeof object.subscription === 'string'
+      ) {
+        const supabaseUserId = await getSupabaseUserIdFromEvent(stripe, event);
+        const subscription = await stripe.subscriptions.retrieve(object.subscription);
+        await syncProfileSubscriptionFromStripeSubscription(subscription, {
+          supabaseUserId,
+        });
+      }
+    }
+
     if (
-      event.type === 'checkout.session.completed' ||
       event.type === 'invoice.paid' ||
-      event.type === 'invoice.payment_succeeded' ||
-      event.type === 'customer.subscription.created' ||
-      event.type === 'customer.subscription.updated'
+      event.type === 'invoice.payment_succeeded'
     ) {
       const object = event.data.object;
-      const supabaseUserId = await getSupabaseUserIdFromEvent(stripe, event);
-      const checkoutPaid =
-        event.type === 'checkout.session.completed' &&
-        'payment_status' in object &&
-        object.payment_status === 'paid';
-      const subscriptionStatus =
-        'status' in object && typeof object.status === 'string' ? object.status : null;
-      const shouldActivate =
-        checkoutPaid ||
-        event.type === 'invoice.paid' ||
-        event.type === 'invoice.payment_succeeded' ||
-        subscriptionStatus === 'active' ||
-        subscriptionStatus === 'trialing';
-
-      if (supabaseUserId && shouldActivate) {
-        await activatePremiumForUser(supabaseUserId);
+      if (
+        'subscription' in object &&
+        typeof object.subscription === 'string'
+      ) {
+        const supabaseUserId = await getSupabaseUserIdFromEvent(stripe, event);
+        const subscription = await stripe.subscriptions.retrieve(object.subscription);
+        await syncProfileSubscriptionFromStripeSubscription(subscription, {
+          supabaseUserId,
+        });
       }
+    }
+
+    if (
+      event.type === 'customer.subscription.created' ||
+      event.type === 'customer.subscription.updated' ||
+      event.type === 'customer.subscription.deleted'
+    ) {
+      const subscription = event.data.object as Stripe.Subscription;
+      const supabaseUserId = await getSupabaseUserIdFromEvent(stripe, event);
+      await syncProfileSubscriptionFromStripeSubscription(subscription, {
+        supabaseUserId,
+      });
     }
 
     return res.status(200).json({ received: true });

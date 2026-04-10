@@ -41,6 +41,8 @@ import {
 
 import AccountPromptDialog from '@/components/AccountPromptDialog';
 import {
+  cancelSubscriptionAtPeriodEnd,
+  createCheckoutSession,
   GUEST_USER_ID,
   getAppStorageKey,
   isTrialExpired as isUserTrialExpired,
@@ -72,8 +74,6 @@ type SasuMode = 'salaire' | 'dividendes';
 const MAX_AMOUNT = 1_000_000;
 const SASU_IS_RATE = 0.25;
 const MICRO_MAX_SALARY_GOAL = 5100;
-const TEMPORARY_STRIPE_PAYMENT_LINK =
-  'https://buy.stripe.com/28EdR99GhgkPccP7N52Ji01';
 
 type AppState = {
   setupDone: boolean;
@@ -106,6 +106,21 @@ function getMonthKey(date = new Date()) {
 
 function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function formatSubscriptionDate(value: string | null) {
+  if (!value) return null;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(parsed);
 }
 
 function sanitizeVatRate(value: number) {
@@ -442,6 +457,7 @@ type ObjectifRevenuAppProps = {
   userEmail: string;
   userProfile: AppUserProfile | null;
   isAuthenticated: boolean;
+  onUserProfileChange: (profile: AppUserProfile | null) => void;
   onSignOut: () => void;
 };
 
@@ -450,6 +466,7 @@ export default function ObjectifRevenuApp({
   userEmail,
   userProfile,
   isAuthenticated,
+  onUserProfileChange,
   onSignOut,
 }: ObjectifRevenuAppProps) {
   const storageKey = getAppStorageKey(userId);
@@ -461,11 +478,15 @@ export default function ObjectifRevenuApp({
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
+  const [showCancelSubscriptionConfirm, setShowCancelSubscriptionConfirm] = useState(false);
   const [accountPromptReason, setAccountPromptReason] = useState<'payment-gate' | 'manual-signin'>('payment-gate');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [chargeAmount, setChargeAmount] = useState('');
   const [paymentFeedback, setPaymentFeedback] = useState<FeedbackState | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [subscriptionFeedback, setSubscriptionFeedback] = useState<string | null>(null);
 
   const [apiResult, setApiResult] = useState<{
     caMonthly: number;
@@ -769,6 +790,11 @@ export default function ObjectifRevenuApp({
   const remaining = calculResteAEncaisser(objectifCa, totalReceived);
   const effectiveTrialStartDate = userProfile?.trialStartDate ?? state.trialStartDate;
   const effectiveIsPremium = userProfile?.isPremium ?? state.isPremium;
+  const subscriptionPlan = userProfile?.plan ?? null;
+  const subscriptionAccessUntil = userProfile?.accessUntil ?? userProfile?.currentPeriodEnd ?? null;
+  const subscriptionAccessUntilLabel = formatSubscriptionDate(subscriptionAccessUntil);
+  const subscriptionCurrentPeriodEndLabel = formatSubscriptionDate(userProfile?.currentPeriodEnd ?? null);
+  const subscriptionCancelScheduled = Boolean(userProfile?.cancelAtPeriodEnd && subscriptionAccessUntil);
   const shouldApplyTrial = isAuthenticated && !effectiveIsPremium;
   const trialExpired = shouldApplyTrial && (
     userProfile
@@ -853,10 +879,8 @@ export default function ObjectifRevenuApp({
 
     try {
       setCheckoutLoading(true);
-      // Temporary Stripe Payment Link integration.
-      // Do not unlock Premium on the client after redirect or return pages.
-      // A Stripe webhook must later confirm payment and update public.profiles.is_premium = true.
-      window.location.assign(TEMPORARY_STRIPE_PAYMENT_LINK);
+      const checkoutUrl = await createCheckoutSession();
+      window.location.assign(checkoutUrl);
     } catch (error) {
       console.error('Erreur ouverture paiement Stripe:', error);
       setPaymentFeedback({
@@ -876,6 +900,39 @@ export default function ObjectifRevenuApp({
   const openAccountPrompt = () => {
     setAccountPromptReason('manual-signin');
     setShowAccountPrompt(true);
+  };
+
+  const openSubscriptionPanel = () => {
+    if (!isAuthenticated || userId === GUEST_USER_ID || !effectiveIsPremium) {
+      void redirectToCheckout();
+      return;
+    }
+
+    setSubscriptionFeedback(null);
+    setShowCancelSubscriptionConfirm(false);
+    setShowSubscriptionDialog(true);
+  };
+
+  const handleCancelSubscription = async () => {
+    try {
+      setSubscriptionLoading(true);
+      const result = await cancelSubscriptionAtPeriodEnd();
+      onUserProfileChange(result.profile);
+      setShowCancelSubscriptionConfirm(false);
+      setSubscriptionFeedback(
+        result.accessUntil
+          ? `Votre abonnement prendra fin le ${formatSubscriptionDate(result.accessUntil)}. Vous conservez l’accès premium jusque-là.`
+          : 'La résiliation en fin de période a bien été programmée.'
+      );
+    } catch (error) {
+      setSubscriptionFeedback(
+        error instanceof Error
+          ? error.message
+          : 'Impossible de programmer la résiliation pour le moment.'
+      );
+    } finally {
+      setSubscriptionLoading(false);
+    }
   };
 
   const saveSetup = () => {
@@ -1026,6 +1083,10 @@ export default function ObjectifRevenuApp({
               <div className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-200">
                 Essai expiré
               </div>
+            ) : subscriptionCancelScheduled ? (
+              <div className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100">
+                Résiliation prévue
+              </div>
             ) : isAuthenticated && !effectiveIsPremium ? (
               <div className="inline-flex items-center rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100">
                 Essai en cours • {trialDaysRemaining} jour{trialDaysRemaining > 1 ? 's' : ''} restant{trialDaysRemaining > 1 ? 's' : ''}
@@ -1046,12 +1107,10 @@ export default function ObjectifRevenuApp({
             <Button
               variant="outline"
               className="h-9 rounded-full border-amber-300/20 bg-slate-950/55 px-3 text-xs font-medium text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.08)] hover:bg-slate-900 hover:text-white"
-              onClick={() => {
-                void redirectToCheckout();
-              }}
+              onClick={openSubscriptionPanel}
               disabled={checkoutLoading}
             >
-              {checkoutLoading ? 'Ouverture...' : 'Abonnement'}
+              {checkoutLoading ? 'Ouverture...' : effectiveIsPremium ? 'Gérer l’abonnement' : 'Abonnement'}
             </Button>
             {isAuthenticated ? (
               <Button
@@ -1559,6 +1618,100 @@ export default function ObjectifRevenuApp({
             >
               Fermer
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showSubscriptionDialog}
+        onOpenChange={(open) => {
+          setShowSubscriptionDialog(open);
+          if (!open) {
+            setShowCancelSubscriptionConfirm(false);
+          }
+        }}
+      >
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-[28px] border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(10,15,35,0.98)_0%,rgba(17,24,58,0.98)_100%)] p-0 text-white shadow-[0_24px_80px_rgba(15,23,42,0.35)]">
+          <DialogHeader className="border-b border-cyan-400/15 px-5 py-4 sm:px-6">
+            <DialogTitle className="text-lg font-bold tracking-tight text-white">
+              Gérer l’abonnement
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 px-5 py-5 text-sm leading-6 text-slate-300 sm:px-6">
+            <div className="rounded-[22px] border border-cyan-400/15 bg-slate-900/50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100">
+                  {subscriptionCancelScheduled ? 'Résiliation prévue' : effectiveIsPremium ? 'Premium actif' : 'Abonnement'}
+                </span>
+                {subscriptionPlan ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-slate-200">
+                    {subscriptionPlan}
+                  </span>
+                ) : null}
+              </div>
+              {subscriptionCancelScheduled && subscriptionAccessUntilLabel ? (
+                <p className="mt-3 text-slate-200">
+                  Votre résiliation est déjà programmée. Vous conservez l’accès premium jusqu’au {subscriptionAccessUntilLabel}.
+                </p>
+              ) : effectiveIsPremium && subscriptionCurrentPeriodEndLabel ? (
+                <p className="mt-3 text-slate-200">
+                  Votre accès premium est actif jusqu’au {subscriptionCurrentPeriodEndLabel}.
+                </p>
+              ) : (
+                <p className="mt-3 text-slate-200">
+                  Gérez votre abonnement Cap Revenu depuis cette zone.
+                </p>
+              )}
+            </div>
+
+            {subscriptionFeedback ? (
+              <div className="rounded-[22px] border border-cyan-400/20 bg-cyan-400/10 p-4 text-cyan-50">
+                {subscriptionFeedback}
+              </div>
+            ) : null}
+
+            {!subscriptionCancelScheduled ? (
+              <div className="rounded-[22px] border border-amber-300/15 bg-amber-500/10 p-4">
+                <p className="font-semibold text-white">Résiliation en fin de période</p>
+                <p className="mt-2 text-amber-50/90">
+                  Si vous confirmez, Stripe programmera la fin de l’abonnement à la date anniversaire. L’accès premium reste actif jusqu’à cette échéance.
+                </p>
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter className="border-t border-cyan-400/15 px-5 py-4 sm:px-6">
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-[18px] border-cyan-300/20 bg-slate-900/60 text-white hover:bg-slate-800 hover:text-white sm:w-auto"
+                onClick={() => setShowSubscriptionDialog(false)}
+              >
+                Fermer
+              </Button>
+              {!subscriptionCancelScheduled ? (
+                showCancelSubscriptionConfirm ? (
+                  <Button
+                    type="button"
+                    className="w-full rounded-[18px] border border-amber-200/40 bg-[linear-gradient(180deg,rgba(251,191,36,0.96)_0%,rgba(245,158,11,0.95)_100%)] text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.28)] hover:brightness-105 sm:w-auto"
+                    onClick={() => {
+                      void handleCancelSubscription();
+                    }}
+                    disabled={subscriptionLoading}
+                  >
+                    {subscriptionLoading ? 'Confirmation...' : 'Confirmer la résiliation'}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    className="w-full rounded-[18px] border border-amber-200/30 bg-[linear-gradient(180deg,rgba(120,53,15,0.96)_0%,rgba(154,52,18,0.95)_100%)] text-amber-50 shadow-[0_0_18px_rgba(251,191,36,0.18)] hover:brightness-105 sm:w-auto"
+                    onClick={() => setShowCancelSubscriptionConfirm(true)}
+                  >
+                    Se désabonner
+                  </Button>
+                )
+              ) : null}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

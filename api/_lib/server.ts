@@ -80,13 +80,21 @@ type UserProfile = {
   email: string;
   is_premium: boolean;
   trial_start_date: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: string | null;
+  cancel_at_period_end: boolean;
+  current_period_end: string | null;
+  access_until: string | null;
+  plan: string | null;
+  canceled_at: string | null;
 };
 
 export async function getUserProfileById(userId: string) {
   const supabaseAdmin = getSupabaseAdminClient();
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, is_premium, trial_start_date')
+    .select('id, email, is_premium, trial_start_date, stripe_customer_id, stripe_subscription_id, subscription_status, cancel_at_period_end, current_period_end, access_until, plan, canceled_at')
     .eq('id', userId)
     .maybeSingle<UserProfile>();
 

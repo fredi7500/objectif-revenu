@@ -47,7 +47,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       mode: 'subscription',
       success_url: `${appUrl}/success`,
       cancel_url: `${appUrl}/cancel`,
-      customer_email: customerEmail,
       line_items: [
         {
           price: getEnv('STRIPE_PRICE_ID'),
@@ -64,6 +63,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           email: customerEmail,
         },
       },
+      ...(profile.stripe_customer_id
+        ? {
+            customer: profile.stripe_customer_id,
+          }
+        : {
+            customer_email: customerEmail,
+          }),
     });
 
     if (!session.url) {

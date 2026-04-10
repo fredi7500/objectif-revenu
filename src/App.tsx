@@ -148,6 +148,7 @@ function App() {
       userEmail={user?.email?.trim().toLowerCase() ?? 'Mode invité'}
       userProfile={userProfile}
       isAuthenticated={Boolean(user)}
+      onUserProfileChange={setUserProfile}
       onSignOut={() => {
         signOut();
         setUser(null);
