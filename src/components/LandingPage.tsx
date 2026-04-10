@@ -148,55 +148,78 @@ export default function LandingPage() {
               <h1 className="max-w-3xl text-[2rem] font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
                 Arrêtez de piloter votre revenu à l’aveugle
               </h1>
-              <p className="max-w-2xl text-[15px] leading-6 text-slate-600 sm:text-lg sm:leading-7">
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.08 }}
+                className="relative mx-auto w-full max-w-[360px] pt-1 lg:hidden"
+              >
+                <div className="absolute left-2 top-6 h-20 w-20 rounded-full bg-cyan-200/70 blur-3xl" />
+                <div className="absolute bottom-6 right-2 h-24 w-24 rounded-full bg-emerald-200/60 blur-3xl" />
+                <PhoneMockup className="relative z-10 max-w-[340px]" />
+                <div className="pointer-events-none absolute inset-x-3 bottom-5 z-20 rounded-[22px] border border-white/10 bg-slate-950/88 p-3 text-white shadow-[0_24px_70px_rgba(2,8,23,0.32)] backdrop-blur">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] text-cyan-200">Objectif de revenu mensuel</p>
+                      <p className="mt-1 text-base font-bold leading-tight">Montant à encaisser clair</p>
+                    </div>
+                    <div className="rounded-full bg-emerald-400/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                      Actionnable
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <p className="max-w-[22rem] text-[15px] leading-6 text-slate-600 sm:max-w-2xl sm:text-lg sm:leading-7">
                 Cap Revenu vous montre combien encaisser et où vous en êtes, en un coup d’œil.
               </p>
-              <p className="max-w-xl text-[15px] leading-6 text-slate-600 sm:text-base sm:leading-7">
+              <p className="max-w-[20rem] text-sm leading-5.5 text-slate-600 sm:max-w-xl sm:text-base sm:leading-7">
                 Fixez votre objectif, suivez votre progression et sachez exactement ce qu’il vous reste à encaisser.
               </p>
             </div>
 
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3">
+            <div className="flex flex-col gap-2.5 pt-1 sm:flex-row sm:gap-3 sm:pt-0">
               <div className="flex flex-col items-center sm:items-start">
                 <a
                   href="/app"
-                  className="inline-flex h-12 items-center justify-center rounded-full bg-slate-950 px-6 text-base font-semibold text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-full bg-slate-950 px-6 text-base font-semibold text-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 sm:w-auto"
                 >
                   Essayer gratuitement
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </a>
-                <p className="text-xs text-white/60 mt-2 text-center">
+                <p className="mt-2 text-center text-xs text-white/60 sm:text-left">
                   Sans engagement
                 </p>
               </div>
               <a
                 href="#fonctionnement"
-                className="inline-flex h-12 items-center justify-center rounded-full border border-slate-200 bg-white px-6 text-base font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:text-slate-950"
+                className="inline-flex h-12 w-full items-center justify-center rounded-full border border-slate-200 bg-white px-6 text-base font-semibold text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:text-slate-950 sm:w-auto"
               >
                 Voir comment ça marche
               </a>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            <div className="grid grid-cols-2 gap-2 pt-1 sm:grid-cols-3 sm:gap-3 sm:pt-0">
               <Card className="h-full rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-                <CardContent className="flex h-full flex-col p-4 sm:p-5">
+                <CardContent className="flex h-full flex-col p-3.5 sm:p-5">
                   <p className="text-xs text-slate-500 sm:text-sm">Essai gratuit</p>
-                  <p className="mt-1.5 text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">10 jours</p>
+                  <p className="mt-1 text-lg font-bold text-slate-950 sm:mt-2 sm:text-2xl">10 jours</p>
                 </CardContent>
               </Card>
               <Card className="h-full rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-                <CardContent className="flex h-full flex-col p-4 sm:p-5">
+                <CardContent className="flex h-full flex-col p-3.5 sm:p-5">
                   <p className="text-xs text-slate-500 sm:text-sm">Abonnement</p>
-                  <p className="mt-1.5 text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">5,99€/mois</p>
+                  <p className="mt-1 text-lg font-bold text-slate-950 sm:mt-2 sm:text-2xl">5,99€/mois</p>
                 </CardContent>
               </Card>
               <Card className="col-span-2 h-full rounded-[28px] border border-white/80 bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:col-span-1">
-                <CardContent className="flex h-full flex-col p-4 sm:p-5">
+                <CardContent className="flex h-full flex-col p-3.5 sm:p-5">
                   <p className="text-xs text-slate-500 sm:text-sm">Réassurance</p>
-                  <p className="mt-1.5 text-lg font-semibold leading-tight text-slate-950 sm:mt-2 sm:text-xl">
+                  <p className="mt-1 text-base font-semibold leading-tight text-slate-950 sm:mt-2 sm:text-xl">
                     Sans engagement
                   </p>
-                  <p className="mt-1.5 text-xs text-slate-500 sm:text-sm">Annulable à tout moment</p>
+                  <p className="mt-1 text-xs text-slate-500 sm:text-sm">Annulable à tout moment</p>
                 </CardContent>
               </Card>
             </div>
@@ -206,7 +229,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, scale: 0.98, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="relative mx-auto w-full max-w-[320px] sm:max-w-none"
+            className="relative mx-auto hidden w-full max-w-[320px] sm:max-w-none lg:block"
           >
             <div className="absolute left-0 top-8 h-20 w-20 rounded-full bg-cyan-200/70 blur-3xl sm:-left-4 sm:top-10 sm:h-36 sm:w-36" />
             <div className="absolute right-0 bottom-8 h-24 w-24 rounded-full bg-emerald-200/60 blur-3xl sm:-right-2 sm:bottom-10 sm:h-40 sm:w-40" />
