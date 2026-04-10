@@ -873,6 +873,11 @@ export default function ObjectifRevenuApp({
     }
   };
 
+  const openAccountPrompt = () => {
+    setAccountPromptReason('manual-signin');
+    setShowAccountPrompt(true);
+  };
+
   const saveSetup = () => {
     if (trialExpired) {
       openUpgradePrompt();
@@ -1000,43 +1005,58 @@ export default function ObjectifRevenuApp({
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.45)_1px,transparent_1.2px)] [background-size:24px_24px]" />
 
       <div className="relative z-10 mx-auto max-w-md">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-300">Ton copilote revenu</p>
-            <h1 className="text-2xl font-bold tracking-tight">Objectif du mois</h1>
-            <p className="mt-1 text-xs text-cyan-200">
-              {isAuthenticated ? userEmail : 'Mode invité • progression enregistrée localement'}
-            </p>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-4 space-y-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">Ton copilote revenu</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Objectif du mois</h1>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {isAuthenticated ? (
+              <div className="inline-flex max-w-full items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <span className="max-w-[170px] truncate">{userEmail}</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold text-cyan-100 shadow-[0_0_14px_rgba(34,211,238,0.12)]">
+                Mode invité
+              </div>
+            )}
+
             {trialExpired ? (
-              <div className="mt-2 inline-flex items-center rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200">
+              <div className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-200">
                 Essai expiré
               </div>
             ) : isAuthenticated && !effectiveIsPremium ? (
-              <div className="mt-2 inline-flex items-center rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
+              <div className="inline-flex items-center rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100">
                 Essai en cours • {trialDaysRemaining} jour{trialDaysRemaining > 1 ? 's' : ''} restant{trialDaysRemaining > 1 ? 's' : ''}
               </div>
-            ) : !isAuthenticated ? (
-              <div className="mt-2 inline-flex items-center rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
-                Crée un compte pour enregistrer ta progression
-              </div>
-            ) : (
-              <div className="mt-2 inline-flex items-center rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
+            ) : isAuthenticated ? (
+              <div className="inline-flex items-center rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
                 Accès Premium
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
+            ) : null}
+
             <Button
               variant="outline"
-              className="rounded-full border-cyan-300/35 bg-slate-950/70 px-5 text-slate-100 shadow-[0_0_20px_rgba(87,183,255,0.18)] hover:bg-slate-900 hover:text-white"
+              className="h-9 rounded-full border-cyan-300/25 bg-slate-950/55 px-3 text-xs font-medium text-slate-100 shadow-[0_0_16px_rgba(87,183,255,0.12)] hover:bg-slate-900 hover:text-white"
               onClick={() => guardMutationAction(() => setShowSetup(true))}
             >
               Réglages
             </Button>
+            <Button
+              variant="outline"
+              className="h-9 rounded-full border-amber-300/20 bg-slate-950/55 px-3 text-xs font-medium text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.08)] hover:bg-slate-900 hover:text-white"
+              onClick={() => {
+                void redirectToCheckout();
+              }}
+              disabled={checkoutLoading}
+            >
+              {checkoutLoading ? 'Ouverture...' : 'Abonnement'}
+            </Button>
             {isAuthenticated ? (
               <Button
                 variant="outline"
-                className="rounded-full border-rose-300/30 bg-slate-950/70 px-4 text-rose-100 shadow-[0_0_20px_rgba(251,113,133,0.12)] hover:bg-slate-900 hover:text-white"
+                className="h-9 rounded-full border-rose-300/25 bg-slate-950/55 px-3 text-xs font-medium text-rose-100 shadow-[0_0_16px_rgba(251,113,133,0.08)] hover:bg-slate-900 hover:text-white"
                 onClick={onSignOut}
               >
                 Sortir
@@ -1044,16 +1064,22 @@ export default function ObjectifRevenuApp({
             ) : (
               <Button
                 variant="outline"
-                className="rounded-full border-cyan-300/35 bg-slate-950/70 px-4 text-cyan-100 shadow-[0_0_20px_rgba(87,183,255,0.18)] hover:bg-slate-900 hover:text-white"
-                onClick={() => {
-                  setAccountPromptReason('manual-signin');
-                  setShowAccountPrompt(true);
-                }}
+                className="h-9 rounded-full border-cyan-300/25 bg-slate-950/55 px-3 text-xs font-medium text-cyan-100 shadow-[0_0_16px_rgba(87,183,255,0.12)] hover:bg-slate-900 hover:text-white"
+                onClick={openAccountPrompt}
               >
                 Connexion
               </Button>
             )}
           </div>
+
+          {!isAuthenticated ? (
+            <Button
+              className="h-10 w-full rounded-[18px] border border-cyan-300/25 bg-[linear-gradient(180deg,rgba(12,24,66,0.94)_0%,rgba(11,39,88,0.94)_100%)] px-4 text-sm font-semibold text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] hover:brightness-110"
+              onClick={openAccountPrompt}
+            >
+              Sauvegarder ma progression
+            </Button>
+          ) : null}
         </motion.div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
