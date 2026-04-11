@@ -456,6 +456,7 @@ type ObjectifRevenuAppProps = {
   userId: string;
   userEmail: string;
   userProfile: AppUserProfile | null;
+  isUserProfileLoading: boolean;
   isAuthenticated: boolean;
   onUserProfileChange: (profile: AppUserProfile | null) => void;
   onSignOut: () => void;
@@ -465,6 +466,7 @@ export default function ObjectifRevenuApp({
   userId,
   userEmail,
   userProfile,
+  isUserProfileLoading,
   isAuthenticated,
   onUserProfileChange,
   onSignOut,
@@ -526,15 +528,9 @@ export default function ObjectifRevenuApp({
       const paymentInputMode: PaymentInputMode =
         parsed.paymentInputMode === 'TTC' ? 'TTC' : 'HT';
       const vatRate = sanitizeVatRate(Number(parsed.vatRate ?? 0.2));
-      const trialStartDate =
-        typeof parsed.trialStartDate === 'string' && parsed.trialStartDate
-          ? parsed.trialStartDate
-          : new Date().toISOString();
       const hydrated: AppState = {
         ...buildDefaultState(),
         ...parsed,
-        trialStartDate,
-        isPremium: Boolean(parsed.isPremium),
         paymentInputMode,
         vatRate,
         monthKey: currentMonth,
@@ -681,22 +677,28 @@ export default function ObjectifRevenuApp({
   ]);
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(state));
+    const persistedState = {
+      ...state,
+      trialStartDate: undefined,
+      isPremium: undefined,
+    };
+
+    localStorage.setItem(storageKey, JSON.stringify(persistedState));
   }, [state, storageKey]);
 
   useEffect(() => {
-    if (!userProfile) return;
+    if (!userProfile || !isAuthenticated) return;
 
     setState((prev) => ({
       ...prev,
       trialStartDate: userProfile.trialStartDate,
       isPremium: userProfile.isPremium,
     }));
-  }, [userProfile?.trialStartDate, userProfile?.isPremium]);
+  }, [isAuthenticated, userProfile]);
 
   useEffect(() => {
-    const currentTrialExpired = userProfile
-      ? isUserTrialExpired(userProfile)
+    const currentTrialExpired = isAuthenticated
+      ? Boolean(userProfile && isUserTrialExpired(userProfile))
       : !state.isPremium && isUserTrialExpired({
           trialStartDate: state.trialStartDate,
           isPremium: state.isPremium,
@@ -707,7 +709,7 @@ export default function ObjectifRevenuApp({
     if (showPayment || showCharge || showSetup) {
       openUpgradePrompt();
     }
-  }, [userProfile, state.isPremium, state.trialStartDate, showPayment, showCharge, showSetup, userId, userEmail]);
+  }, [isAuthenticated, userProfile, state.isPremium, state.trialStartDate, showPayment, showCharge, showSetup, userId, userEmail]);
 
   const objectifCa = useMemo(() => {
     if (state.status === 'micro-entreprise (auto-entrepreneur)') {
@@ -762,7 +764,7 @@ export default function ObjectifRevenuApp({
     }
 
     return totalReceived - prelevement - totalChargesGlobal;
-  }, [state, totalReceived, prelevement, totalChargesGlobal]);
+  }, [state, totalReceived, prelevement, totalChargesGlobal, apiResult?.currentNetMonthly]);
 
   const impotSocietes = useMemo(() => {
     if (!isSasuDividendes) return 0;
@@ -788,27 +790,78 @@ export default function ObjectifRevenuApp({
   const progress = calculProgression(totalReceived, objectifCa);
   const progressLabel = Math.round(progress);
   const remaining = calculResteAEncaisser(objectifCa, totalReceived);
-  const effectiveTrialStartDate = userProfile?.trialStartDate ?? state.trialStartDate;
-  const effectiveIsPremium = userProfile?.isPremium ?? state.isPremium;
-  const subscriptionPlan = userProfile?.plan ?? null;
-  const subscriptionAccessUntil = userProfile?.accessUntil ?? userProfile?.currentPeriodEnd ?? null;
+  const effectiveTrialStartDate = isAuthenticated
+    ? userProfile?.trialStartDate ?? null
+    : state.trialStartDate;
+  const effectiveIsPremium = isAuthenticated
+    ? Boolean(userProfile?.isPremium)
+    : state.isPremium;
+  const subscriptionPlan = isAuthenticated ? userProfile?.plan ?? null : null;
+  const subscriptionAccessUntil = isAuthenticated
+    ? userProfile?.accessUntil ?? userProfile?.currentPeriodEnd ?? null
+    : null;
   const subscriptionAccessUntilLabel = formatSubscriptionDate(subscriptionAccessUntil);
-  const subscriptionCurrentPeriodEndLabel = formatSubscriptionDate(userProfile?.currentPeriodEnd ?? null);
-  const subscriptionCancelScheduled = Boolean(userProfile?.cancelAtPeriodEnd && subscriptionAccessUntil);
-  const shouldApplyTrial = isAuthenticated && !effectiveIsPremium;
-  const trialExpired = shouldApplyTrial && (
-    userProfile
-      ? isUserTrialExpired(userProfile)
-      : isUserTrialExpired({
-          trialStartDate: effectiveTrialStartDate,
-          isPremium: effectiveIsPremium,
-        })
+  const subscriptionCurrentPeriodEndLabel = formatSubscriptionDate(
+    isAuthenticated ? userProfile?.currentPeriodEnd ?? null : null
   );
-  const trialStart = new Date(effectiveTrialStartDate);
+  const subscriptionCancelScheduled = Boolean(
+    isAuthenticated && userProfile?.cancelAtPeriodEnd && subscriptionAccessUntil
+  );
+  const shouldApplyTrial = isAuthenticated
+    ? Boolean(userProfile && !userProfile.isPremium)
+    : false;
+  const trialExpired = shouldApplyTrial && Boolean(userProfile && isUserTrialExpired(userProfile));
+  const trialStart = effectiveTrialStartDate ? new Date(effectiveTrialStartDate) : new Date(Number.NaN);
   const trialDaysElapsed = Number.isNaN(trialStart.getTime())
     ? 0
     : Math.max(0, Math.floor((Date.now() - trialStart.getTime()) / 86_400_000));
   const trialDaysRemaining = shouldApplyTrial ? Math.max(0, 10 - trialDaysElapsed) : 0;
+  const displayedSubscriptionStatus = !isAuthenticated
+    ? 'guest'
+    : isUserProfileLoading
+      ? 'loading-profile'
+      : effectiveIsPremium
+        ? 'premium'
+        : trialExpired
+          ? 'trial-expired'
+          : shouldApplyTrial
+            ? 'trial'
+            : 'free';
+
+  useEffect(() => {
+    console.info('[supabase-profile] status source in UI', {
+      userId,
+      isAuthenticated,
+      isUserProfileLoading,
+      profileLoaded: Boolean(userProfile),
+      profile: userProfile
+        ? {
+            id: userProfile.id,
+            isPremium: userProfile.isPremium,
+            trialStartDate: userProfile.trialStartDate,
+            subscriptionStatus: userProfile.subscriptionStatus,
+            accessUntil: userProfile.accessUntil,
+            currentPeriodEnd: userProfile.currentPeriodEnd,
+            cancelAtPeriodEnd: userProfile.cancelAtPeriodEnd,
+          }
+        : null,
+      localState: {
+        isPremium: state.isPremium,
+        trialStartDate: state.trialStartDate,
+      },
+      displayedSubscriptionStatus,
+      trialDaysRemaining,
+    });
+  }, [
+    displayedSubscriptionStatus,
+    isAuthenticated,
+    isUserProfileLoading,
+    state.isPremium,
+    state.trialStartDate,
+    trialDaysRemaining,
+    userId,
+    userProfile,
+  ]);
   const displayedRemaining = usesVat
     ? roundCurrency(remaining * (1 + state.vatRate))
     : remaining;
@@ -1079,7 +1132,11 @@ export default function ObjectifRevenuApp({
               </div>
             )}
 
-            {trialExpired ? (
+            {isAuthenticated && isUserProfileLoading ? (
+              <div className="inline-flex items-center rounded-full border border-slate-300/20 bg-slate-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-200">
+                Chargement du profil...
+              </div>
+            ) : trialExpired ? (
               <div className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-200">
                 Essai expiré
               </div>

@@ -17,6 +17,7 @@ const AUTH_DEBUG_PREFIX = '[supabase-magic-link]';
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<AppUserProfile | null>(null);
+  const [userProfileLoading, setUserProfileLoading] = useState(false);
   const [guestMode, setGuestMode] = useState<boolean>(() => isGuestModeEnabledFromLocation(window.location));
 
   useEffect(() => {
@@ -42,6 +43,10 @@ function App() {
 
       if (!cancelled) {
         setUser(session?.user ?? null);
+        if (session?.user) {
+          clearGuestModeInUrl();
+          setGuestMode(false);
+        }
       }
     }
 
@@ -59,6 +64,10 @@ function App() {
 
       if (!cancelled) {
         setUser(session?.user ?? null);
+        if (session?.user) {
+          clearGuestModeInUrl();
+          setGuestMode(false);
+        }
       }
     });
 
@@ -81,13 +90,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-
-    clearGuestModeInUrl();
-    setGuestMode(false);
-  }, [user]);
-
-  useEffect(() => {
     if (!user?.id) return;
     migrateGuestAppStateToUser(user.id);
   }, [user?.id]);
@@ -97,8 +99,13 @@ function App() {
 
     async function syncUserProfile() {
       if (!user?.id || !user.email) {
+        setUserProfileLoading(false);
         setUserProfile(null);
         return;
+      }
+
+      if (!cancelled) {
+        setUserProfileLoading(true);
       }
 
       try {
@@ -111,6 +118,7 @@ function App() {
         });
         if (!cancelled) {
           setUserProfile(profile);
+          setUserProfileLoading(false);
         }
       } catch (error) {
         console.error('[supabase-profile] sync failed in App', {
@@ -120,6 +128,7 @@ function App() {
         });
         if (!cancelled) {
           setUserProfile(null);
+          setUserProfileLoading(false);
         }
       }
     }
@@ -147,12 +156,14 @@ function App() {
       userId={user?.id ?? GUEST_USER_ID}
       userEmail={user?.email?.trim().toLowerCase() ?? 'Mode invité'}
       userProfile={userProfile}
+      isUserProfileLoading={userProfileLoading}
       isAuthenticated={Boolean(user)}
       onUserProfileChange={setUserProfile}
       onSignOut={() => {
         signOut();
         setUser(null);
         setUserProfile(null);
+        setUserProfileLoading(false);
       }}
     />
   );
