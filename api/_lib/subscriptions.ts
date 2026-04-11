@@ -125,9 +125,43 @@ export async function getProfileByStripeSubscriptionId(stripeSubscriptionId: str
   return data;
 }
 
+export async function getProfileByEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  const supabaseAdmin = getSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select(`
+      id,
+      email,
+      is_premium,
+      stripe_customer_id,
+      stripe_subscription_id,
+      subscription_status,
+      cancel_at_period_end,
+      current_period_end,
+      access_until,
+      plan,
+      canceled_at,
+      trial_start_date,
+      created_at
+    `)
+    .ilike('email', normalizedEmail)
+    .maybeSingle<ProfileSubscriptionRow>();
+
+  if (error) {
+    throw new Error(error.message || 'Unable to load profile by email.');
+  }
+
+  return data;
+}
+
 export async function syncProfileSubscriptionFromStripeSubscription(
   subscription: Stripe.Subscription,
-  options?: { supabaseUserId?: string | null }
+  options?: { supabaseUserId?: string | null; customerEmail?: string | null; eventType?: string | null }
 ) {
   const stripeCustomerId =
     typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
@@ -149,8 +183,19 @@ export async function syncProfileSubscriptionFromStripeSubscription(
   if (!profileId && stripeCustomerId) {
     profileId = (await getProfileByStripeCustomerId(stripeCustomerId))?.id ?? null;
   }
+  if (!profileId && options?.customerEmail) {
+    profileId = (await getProfileByEmail(options.customerEmail))?.id ?? null;
+  }
 
   if (!profileId) {
+    console.error('stripe-sync profile resolution failed', {
+      eventType: options?.eventType ?? null,
+      stripeSubscriptionId,
+      stripeCustomerId,
+      subscriptionStatus,
+      metadataSupabaseUserId: subscription.metadata.supabase_user_id ?? null,
+      customerEmail: options?.customerEmail ?? null,
+    });
     throw new Error('Unable to resolve Supabase profile for Stripe subscription.');
   }
 
@@ -192,8 +237,27 @@ export async function syncProfileSubscriptionFromStripeSubscription(
     .single<ProfileSubscriptionRow>();
 
   if (error) {
+    console.error('stripe-sync supabase update failed', {
+      eventType: options?.eventType ?? null,
+      profileId,
+      stripeSubscriptionId,
+      stripeCustomerId,
+      subscriptionStatus,
+      customerEmail: options?.customerEmail ?? null,
+      error,
+    });
     throw new Error(error.message || 'Unable to sync profile subscription state.');
   }
+
+  console.info('stripe-sync supabase update success', {
+    eventType: options?.eventType ?? null,
+    profileId,
+    stripeSubscriptionId,
+    stripeCustomerId,
+    subscriptionStatus,
+    isPremium,
+    customerEmail: options?.customerEmail ?? null,
+  });
 
   return data;
 }
