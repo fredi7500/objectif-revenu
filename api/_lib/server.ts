@@ -12,12 +12,61 @@ function getEnv(name: string) {
 
 export { getEnv };
 
-export function getAppUrl() {
-  return process.env.VITE_APP_URL ?? 'http://localhost:3000';
+type RequestLike = {
+  headers: Record<string, string | string[] | undefined>;
+};
+
+function readHeader(
+  headers: Record<string, string | string[] | undefined>,
+  name: string
+) {
+  const value = headers[name];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export function getAppUrl(req?: RequestLike) {
+  const configuredAppUrl = process.env.VITE_APP_URL?.trim();
+  if (configuredAppUrl) {
+    return configuredAppUrl.replace(/\/+$/, '');
+  }
+
+  if (!req) {
+    return 'http://localhost:3000';
+  }
+
+  const origin = readHeader(req.headers, 'origin');
+  if (origin) {
+    return origin.replace(/\/+$/, '');
+  }
+
+  const forwardedProto = readHeader(req.headers, 'x-forwarded-proto');
+  const forwardedHost = readHeader(req.headers, 'x-forwarded-host');
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+  }
+
+  const host = readHeader(req.headers, 'host');
+  if (host) {
+    return `https://${host}`.replace(/\/+$/, '');
+  }
+
+  return 'http://localhost:3000';
 }
 
 export function getStripeClient() {
   return new Stripe(getEnv('STRIPE_SECRET_KEY'));
+}
+
+export function getStripeMode(secretKey: string) {
+  if (secretKey.startsWith('sk_live_')) {
+    return 'live';
+  }
+
+  if (secretKey.startsWith('sk_test_')) {
+    return 'test';
+  }
+
+  return 'unknown';
 }
 
 export function getSupabaseServerClient() {

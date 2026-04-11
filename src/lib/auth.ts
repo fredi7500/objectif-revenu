@@ -426,13 +426,23 @@ export async function createCheckoutSession() {
     },
   });
 
-  const payload = await response.json().catch(() => null);
+  const responseText = await response.text();
+  let payload: { error?: unknown; url?: unknown } | null = null;
+
+  if (responseText) {
+    try {
+      payload = JSON.parse(responseText) as { error?: unknown; url?: unknown };
+    } catch {
+      payload = null;
+    }
+  }
 
   if (!response.ok) {
-    const message =
+    const backendMessage =
       payload && typeof payload.error === 'string'
         ? payload.error
-        : 'Impossible de créer la session de paiement.';
+        : responseText.trim();
+    const message = backendMessage || `Impossible de créer la session de paiement (HTTP ${response.status}).`;
     throw new Error(message);
   }
 
