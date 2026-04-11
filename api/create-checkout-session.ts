@@ -1,12 +1,5 @@
-import {
-  getAppUrl,
-  getAuthenticatedUserFromRequest,
-  getEnv,
-  getStripeMode,
-  getStripeClient,
-  getUserProfileById,
-} from './_lib/server';
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
 type ApiRequest = {
   method?: string;
@@ -19,6 +12,149 @@ type ApiResponse = {
     json: (body: unknown) => void;
   };
 };
+
+type UserProfile = {
+  id: string;
+  email: string;
+  is_premium: boolean;
+  trial_start_date: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: string | null;
+  cancel_at_period_end: boolean;
+  current_period_end: string | null;
+  access_until: string | null;
+  plan: string | null;
+  canceled_at: string | null;
+};
+
+function getEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+
+  return value;
+}
+
+function readHeader(
+  headers: Record<string, string | string[] | undefined>,
+  name: string
+) {
+  const value = headers[name];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getAppUrl(req: ApiRequest) {
+  const configuredAppUrl = process.env.VITE_APP_URL?.trim();
+  if (configuredAppUrl) {
+    return configuredAppUrl.replace(/\/+$/, '');
+  }
+
+  const origin = readHeader(req.headers, 'origin');
+  if (origin) {
+    return origin.replace(/\/+$/, '');
+  }
+
+  const forwardedProto = readHeader(req.headers, 'x-forwarded-proto');
+  const forwardedHost = readHeader(req.headers, 'x-forwarded-host');
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+  }
+
+  const host = readHeader(req.headers, 'host');
+  if (host) {
+    return `https://${host}`.replace(/\/+$/, '');
+  }
+
+  return 'http://localhost:3000';
+}
+
+function getStripeMode(secretKey: string) {
+  if (secretKey.startsWith('sk_live_')) {
+    return 'live';
+  }
+
+  if (secretKey.startsWith('sk_test_')) {
+    return 'test';
+  }
+
+  return 'unknown';
+}
+
+function getStripeClient() {
+  return new Stripe(getEnv('STRIPE_SECRET_KEY'));
+}
+
+function getSupabaseServerClient() {
+  return createClient(
+    getEnv('VITE_SUPABASE_URL'),
+    getEnv('VITE_SUPABASE_ANON_KEY'),
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
+}
+
+function getSupabaseAdminClient() {
+  return createClient(
+    getEnv('VITE_SUPABASE_URL'),
+    getEnv('SUPABASE_SERVICE_ROLE_KEY'),
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
+}
+
+async function getAuthenticatedUserFromRequest(req: ApiRequest) {
+  const authorization = req.headers.authorization;
+  const bearer = Array.isArray(authorization) ? authorization[0] : authorization;
+  const token = bearer?.startsWith('Bearer ') ? bearer.slice(7) : null;
+
+  if (!token) {
+    return null;
+  }
+
+  const supabase = getSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(token);
+
+  if (error) {
+    throw new Error(error.message || 'Unable to verify Supabase user.');
+  }
+
+  if (!user?.id || !user.email) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+  };
+}
+
+async function getUserProfileById(userId: string) {
+  const supabaseAdmin = getSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email, is_premium, trial_start_date, stripe_customer_id, stripe_subscription_id, subscription_status, cancel_at_period_end, current_period_end, access_until, plan, canceled_at')
+    .eq('id', userId)
+    .maybeSingle<UserProfile>();
+
+  if (error) {
+    throw new Error(error.message || 'Unable to load Supabase profile.');
+  }
+
+  return data;
+}
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== 'POST') {
