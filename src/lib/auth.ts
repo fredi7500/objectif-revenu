@@ -45,6 +45,16 @@ export type AppUserProfile = {
   canceledAt: string | null;
 };
 
+export type TrialTiming = {
+  rawTrialStartDate: string | null;
+  parsedTrialStartDate: string | null;
+  trialEndDate: string | null;
+  now: string;
+  isValid: boolean;
+  isExpired: boolean;
+  daysRemaining: number;
+};
+
 type CancelSubscriptionResponse = {
   profile: AppUserProfile;
   subscriptionStatus: string | null;
@@ -60,6 +70,8 @@ const APP_STORAGE_PREFIX = 'objectif-revenu-app-v3';
 const AUTH_EVENT = 'objectif-revenu-auth-change';
 const AUTH_DEBUG_PREFIX = '[supabase-magic-link]';
 const PROFILE_DEBUG_PREFIX = '[supabase-profile]';
+const TRIAL_DURATION_DAYS = 10;
+const DAY_IN_MS = 86_400_000;
 
 export const GUEST_USER_ID = 'guest';
 
@@ -483,20 +495,58 @@ export async function cancelSubscriptionAtPeriodEnd() {
   return payload as CancelSubscriptionResponse;
 }
 
-export function isTrialExpired(
+export function getTrialTiming(
   user: Pick<AppUserProfile, 'trialStartDate' | 'isPremium'> | null,
   now = new Date()
-) {
+): TrialTiming {
+  const nowIso = now.toISOString();
+
   if (!user || user.isPremium || !user.trialStartDate) {
-    return false;
+    return {
+      rawTrialStartDate: user?.trialStartDate ?? null,
+      parsedTrialStartDate: null,
+      trialEndDate: null,
+      now: nowIso,
+      isValid: false,
+      isExpired: false,
+      daysRemaining: 0,
+    };
   }
 
   const start = new Date(user.trialStartDate);
   if (Number.isNaN(start.getTime())) {
-    return false;
+    return {
+      rawTrialStartDate: user.trialStartDate,
+      parsedTrialStartDate: null,
+      trialEndDate: null,
+      now: nowIso,
+      isValid: false,
+      isExpired: false,
+      daysRemaining: 0,
+    };
   }
 
-  return now.getTime() - start.getTime() > 10 * 86_400_000;
+  const trialEnd = new Date(start.getTime() + TRIAL_DURATION_DAYS * DAY_IN_MS);
+  const remainingMs = trialEnd.getTime() - now.getTime();
+  const daysRemaining = Math.max(0, Math.ceil(remainingMs / DAY_IN_MS));
+  const isExpired = remainingMs <= 0;
+
+  return {
+    rawTrialStartDate: user.trialStartDate,
+    parsedTrialStartDate: start.toISOString(),
+    trialEndDate: trialEnd.toISOString(),
+    now: nowIso,
+    isValid: true,
+    isExpired,
+    daysRemaining,
+  };
+}
+
+export function isTrialExpired(
+  user: Pick<AppUserProfile, 'trialStartDate' | 'isPremium'> | null,
+  now = new Date()
+) {
+  return getTrialTiming(user, now).isExpired;
 }
 
 export function getAppStorageKey(userId: string) {

@@ -45,6 +45,7 @@ import {
   createCheckoutSession,
   GUEST_USER_ID,
   getAppStorageKey,
+  getTrialTiming,
   isTrialExpired as isUserTrialExpired,
   type AppUserProfile,
 } from '@/lib/auth';
@@ -790,9 +791,6 @@ export default function ObjectifRevenuApp({
   const progress = calculProgression(totalReceived, objectifCa);
   const progressLabel = Math.round(progress);
   const remaining = calculResteAEncaisser(objectifCa, totalReceived);
-  const effectiveTrialStartDate = isAuthenticated
-    ? userProfile?.trialStartDate ?? null
-    : state.trialStartDate;
   const effectiveIsPremium = isAuthenticated
     ? Boolean(userProfile?.isPremium)
     : state.isPremium;
@@ -810,12 +808,14 @@ export default function ObjectifRevenuApp({
   const shouldApplyTrial = isAuthenticated
     ? Boolean(userProfile && !userProfile.isPremium)
     : false;
-  const trialExpired = shouldApplyTrial && Boolean(userProfile && isUserTrialExpired(userProfile));
-  const trialStart = effectiveTrialStartDate ? new Date(effectiveTrialStartDate) : new Date(Number.NaN);
-  const trialDaysElapsed = Number.isNaN(trialStart.getTime())
-    ? 0
-    : Math.max(0, Math.floor((Date.now() - trialStart.getTime()) / 86_400_000));
-  const trialDaysRemaining = shouldApplyTrial ? Math.max(0, 10 - trialDaysElapsed) : 0;
+  const trialTiming = isAuthenticated
+    ? getTrialTiming(userProfile)
+    : getTrialTiming({
+        trialStartDate: state.trialStartDate,
+        isPremium: state.isPremium,
+      });
+  const trialExpired = shouldApplyTrial && trialTiming.isExpired;
+  const trialDaysRemaining = shouldApplyTrial ? trialTiming.daysRemaining : 0;
   const displayedSubscriptionStatus = !isAuthenticated
     ? 'guest'
     : isUserProfileLoading
@@ -849,6 +849,13 @@ export default function ObjectifRevenuApp({
         isPremium: state.isPremium,
         trialStartDate: state.trialStartDate,
       },
+      trialComputation: {
+        trial_start_date_raw: trialTiming.rawTrialStartDate,
+        trial_start_date_parsed: trialTiming.parsedTrialStartDate,
+        trial_end_date: trialTiming.trialEndDate,
+        now: trialTiming.now,
+        days_remaining: trialTiming.daysRemaining,
+      },
       displayedSubscriptionStatus,
       trialDaysRemaining,
     });
@@ -858,6 +865,11 @@ export default function ObjectifRevenuApp({
     isUserProfileLoading,
     state.isPremium,
     state.trialStartDate,
+    trialTiming.daysRemaining,
+    trialTiming.now,
+    trialTiming.parsedTrialStartDate,
+    trialTiming.rawTrialStartDate,
+    trialTiming.trialEndDate,
     trialDaysRemaining,
     userId,
     userProfile,
