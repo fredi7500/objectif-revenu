@@ -2,8 +2,8 @@ import {
   getAuthenticatedUserFromRequest,
   getStripeClient,
   getUserProfileById,
-} from './_lib/server';
-import { mapProfileSubscriptionRow, syncProfileSubscriptionFromStripeSubscription } from './_lib/subscriptions';
+} from './_lib/server.js';
+import { mapProfileSubscriptionRow, syncProfileSubscriptionFromStripeSubscription } from './_lib/subscriptions.js';
 
 type ApiRequest = {
   method?: string;

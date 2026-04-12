@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { getSupabaseAdminClient } from './server';
+import { getSupabaseAdminClient } from './server.js';
 
 type ProfileSubscriptionRow = {
   id: string;
@@ -31,6 +31,19 @@ function getPlanLabel(subscription: Stripe.Subscription) {
   }
 
   return price.lookup_key || price.nickname || price.id || null;
+}
+
+function getCurrentPeriodEnd(subscription: Stripe.Subscription) {
+  const periodEnd = subscription.items.data.reduce<number | null>((latestPeriodEnd, item) => {
+    const itemPeriodEnd = item.current_period_end ?? null;
+    if (!itemPeriodEnd) {
+      return latestPeriodEnd;
+    }
+
+    return latestPeriodEnd ? Math.max(latestPeriodEnd, itemPeriodEnd) : itemPeriodEnd;
+  }, null);
+
+  return unixToIso(periodEnd ?? subscription.cancel_at ?? null);
 }
 
 function hasPremiumAccess(input: {
@@ -166,7 +179,7 @@ export async function syncProfileSubscriptionFromStripeSubscription(
   const stripeCustomerId =
     typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
   const stripeSubscriptionId = subscription.id;
-  const currentPeriodEnd = unixToIso(subscription.current_period_end);
+  const currentPeriodEnd = getCurrentPeriodEnd(subscription);
   const canceledAt = unixToIso(subscription.canceled_at);
   const accessUntil = currentPeriodEnd;
   const subscriptionStatus = subscription.status ?? null;

@@ -86,6 +86,10 @@ function getStripeClient() {
   return new Stripe(getEnv('STRIPE_SECRET_KEY'));
 }
 
+function isDeletedPrice(price: Stripe.Price | Stripe.DeletedPrice): price is Stripe.DeletedPrice {
+  return 'deleted' in price;
+}
+
 function getSupabaseServerClient() {
   return createClient(
     getEnv('VITE_SUPABASE_URL'),
@@ -194,8 +198,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const successUrl = new URL('/success', `${appUrl}/`).toString();
     const cancelUrl = new URL('/cancel', `${appUrl}/`).toString();
 
-    const price = await stripe.prices.retrieve(stripePriceId);
-    if (price.deleted) {
+    const price: Stripe.Price | Stripe.DeletedPrice = await stripe.prices.retrieve(stripePriceId);
+    if (isDeletedPrice(price)) {
       throw new Error(
         `Stripe price "${stripePriceId}" is deleted in ${stripeMode} mode. Check STRIPE_PRICE_ID.`
       );
