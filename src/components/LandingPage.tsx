@@ -132,7 +132,7 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1.5 text-[13px] font-medium text-slate-700 shadow-[0_16px_40px_rgba(15,23,42,0.06)] backdrop-blur sm:px-4 sm:py-2 sm:text-sm"
             >
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              Outil de calcul de revenu pour indépendants
+              Ton copilote financier au quotidien
             </motion.div>
 
             <div className="space-y-3 sm:space-y-4">

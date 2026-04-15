@@ -35,7 +35,7 @@ export default function MarketingLayout({ metadata, children }: MarketingLayoutP
           />
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Cap Revenu</p>
-            <p className="text-sm text-slate-600">Simulateur de revenu pour indépendants</p>
+            <p className="text-sm text-slate-600">Pilote ton revenu d’indépendant en temps réel</p>
           </div>
         </a>
 
